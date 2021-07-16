@@ -1,0 +1,3 @@
+[tools]
+remodel = { source = "rojo-rbx/remodel", version = "0.8.1" }
+rojo = { source = "rojo-rbx/rojo", version = "6.2.0" }

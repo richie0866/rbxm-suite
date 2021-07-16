@@ -1,0 +1,84 @@
+# Remodel
+[selene]
+base = "lua51"
+
+[[json.fromString.args]]
+type = "string"
+
+[[json.toString.args]]
+type = "any"
+
+[[remodel.createDirAll.args]]
+type = "string"
+
+[[remodel.getRawProperty.args]]
+type = { display = "Instance" }
+
+[[remodel.getRawProperty.args]]
+type = "string"
+
+[[remodel.isDir.args]]
+type = "string"
+
+[[remodel.isFile.args]]
+type = "string"
+
+[[remodel.readDir.args]]
+type = "string"
+
+[[remodel.readFile.args]]
+type = "string"
+
+[[remodel.readModelAsset.args]]
+type = "string"
+
+[[remodel.readModelFile.args]]
+type = "string"
+
+[[remodel.readPlaceAsset.args]]
+type = "string"
+
+[[remodel.readPlaceFile.args]]
+type = "string"
+
+[[remodel.setRawProperty.args]]
+type = { display = "Instance" }
+
+[[remodel.setRawProperty.args]]
+type = "string"
+
+[[remodel.setRawProperty.args]]
+type = "string"
+
+[[remodel.setRawProperty.args]]
+type = "any"
+
+[[remodel.writeExistingModelAsset.args]]
+type = { display = "Instance" }
+
+[[remodel.writeExistingModelAsset.args]]
+type = "string"
+
+[[remodel.writeExistingPlaceAsset.args]]
+type = { display = "Instance" }
+
+[[remodel.writeExistingPlaceAsset.args]]
+type = "string"
+
+[[remodel.writeFile.args]]
+type = "string"
+
+[[remodel.writeFile.args]]
+type = "string"
+
+[[remodel.writeModelFile.args]]
+type = { display = "Instance" }
+
+[[remodel.writeModelFile.args]]
+type = "string"
+
+[[remodel.writePlaceFile.args]]
+type = { display = "DataModel" }
+
+[[remodel.writePlaceFile.args]]
+type = "string"
