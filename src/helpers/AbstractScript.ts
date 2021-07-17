@@ -7,7 +7,7 @@ interface Environment {
 	/** A reference to the script the AbstractScript extends. */
 	script: RobloxScript;
 
-	/** Wraps the `reguire` global for custom behavior with AbstractScripts. */
+	/** Wraps the `require` global for custom behavior with AbstractScripts. */
 	require(module: ModuleScript): unknown;
 }
 
