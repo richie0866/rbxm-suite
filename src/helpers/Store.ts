@@ -16,7 +16,9 @@ export default abstract class Store<K extends unknown, V extends unknown> {
 		/** A global identifier for the store. */
 		public id: string,
 	) {
-		this.state = (stores.has(id) && (stores.get(id) as Map<K, V>)) || new Map();
+		this.state = stores.has(id) ? (stores.get(id) as Map<K, V>) : new Map();
+
+		stores.set(id, this.state);
 	}
 
 	/** Returns the value associated with the given key. */
