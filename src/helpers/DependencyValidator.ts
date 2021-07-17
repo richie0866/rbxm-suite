@@ -31,13 +31,13 @@ export default class DependencyValidator {
 	validate(abstractScript: AbstractScript) {
 		let currentModule: AbstractScript | undefined = abstractScript;
 
-		for (let depth = 0; currentModule; depth++) {
+		for (let depth = 1; currentModule; depth++) {
 			currentModule = this.currentlyLoading.get(currentModule);
 
 			if (abstractScript === currentModule)
 				throw [
 					`Requested module '${abstractScript.instance.GetFullName()}' contains a cyclic reference`,
-					`\tTraceback: ${this.getTraceback(abstractScript, depth)}`,
+					`Traceback: ${this.getTraceback(abstractScript, depth).join("\n\t⇒ ")}`,
 				].join("\n");
 		}
 	}
@@ -47,12 +47,12 @@ export default class DependencyValidator {
 	 * @param abstractScript The module getting loaded.
 	 * @param depth The depth of the dependency chain.
 	 */
-	private getTraceback(abstractScript: AbstractScript, depth: number) {
-		let traceback = abstractScript.instance.GetFullName();
+	private getTraceback(abstractScript: AbstractScript, depth: number): string[] {
+		const traceback = [abstractScript.instance.GetFullName()];
 		let currentModule = abstractScript;
 		for (let i = 0; i < depth; i++) {
 			currentModule = this.currentlyLoading.get(currentModule)!;
-			traceback += `\n\t\t⇒ ${currentModule.instance.GetFullName()}`;
+			traceback.push(currentModule.instance.GetFullName());
 		}
 		return traceback;
 	}
