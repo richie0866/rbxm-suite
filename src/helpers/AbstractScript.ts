@@ -38,7 +38,7 @@ export default class AbstractScript {
 	environment: Environment;
 
 	constructor(
-		/** The script object to extend.  */
+		/** The script object to extend. */
 		public readonly instance: RobloxScript,
 
 		/** Optional function to call when running or requiring the object. */
