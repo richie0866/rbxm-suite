@@ -37,13 +37,11 @@ export default class AbstractScript {
 	/** The global environment to apply to the executor. */
 	environment: Environment;
 
-	/**
-	 * @param instance The script object to extend.
-	 * @param executor Optional function to call when running or requiring the object.
-	 */
 	constructor(
+		/** The script object to extend.  */
 		public readonly instance: RobloxScript,
 
+		/** Optional function to call when running or requiring the object. */
 		public executor: () => unknown = loadString(instance.Source, `=${instance.GetFullName()}`),
 	) {
 		this.environment = setmetatable<Environment>(
