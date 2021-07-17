@@ -114,13 +114,13 @@ export default class AbstractScript {
 	async execute(): Promise<unknown> {
 		if (this.didExecute) return this.result;
 
-		const result = this.executor();
+		this.result = this.executor();
 		this.didExecute = true;
 
-		if (this.instance.IsA("ModuleScript") && result === undefined)
+		if (this.instance.IsA("ModuleScript") && this.result === undefined)
 			throw `Module '${this.instance.GetFullName()}' did not return any value`;
 
-		return result;
+		return this.result;
 	}
 
 	/**
