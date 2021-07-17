@@ -25,35 +25,27 @@ export default class DependencyValidator {
 	}
 
 	/**
-	 * Checks the validity of the dependency chain by looking for cyclic references.
+	 * Asserts the validity of the dependency chain by looking for cyclic references.
 	 * @param abstractScript The module getting loaded.
+	 * @returns The dependency chain starting with `abstractScript`.
 	 */
-	validate(abstractScript: AbstractScript) {
-		let currentModule: AbstractScript | undefined = abstractScript;
+	traceback(abstractScript: AbstractScript): AbstractScript[] {
+		const chain: AbstractScript[] = [abstractScript];
 
-		for (let depth = 1; currentModule; depth++) {
-			currentModule = this.currentlyLoading.get(currentModule);
+		for (
+			let current: AbstractScript | undefined = this.currentlyLoading.get(abstractScript);
+			current;
+			current = this.currentlyLoading.get(current)
+		) {
+			chain.push(current);
 
-			if (abstractScript === currentModule)
+			if (abstractScript === current)
 				throw [
-					`Requested module '${abstractScript.instance.GetFullName()}' contains a cyclic reference`,
-					`Traceback: ${this.getTraceback(abstractScript, depth).join("\n\t⇒ ")}`,
+					`Requested module '${abstractScript.identify()}' contains a cyclic reference`,
+					`Traceback: ${chain.map((script) => script.identify()).join("\n\t⇒ ")}`,
 				].join("\n");
 		}
-	}
 
-	/**
-	 * Returns a string used to debug a dependency chain.
-	 * @param abstractScript The module getting loaded.
-	 * @param depth The depth of the dependency chain.
-	 */
-	private getTraceback(abstractScript: AbstractScript, depth: number): string[] {
-		const traceback = [abstractScript.instance.GetFullName()];
-		let currentModule = abstractScript;
-		for (let i = 0; i < depth; i++) {
-			currentModule = this.currentlyLoading.get(currentModule)!;
-			traceback.push(currentModule.instance.GetFullName());
-		}
-		return traceback;
+		return chain;
 	}
 }

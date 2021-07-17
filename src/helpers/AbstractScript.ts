@@ -11,7 +11,9 @@ interface Environment {
 	require(module: ModuleScript): unknown;
 }
 
-/** Loads a string as a Lua chunk. Throws an error if it failed to load. */
+/**
+ * Loads a string as a Lua chunk. Throws an error if it failed to load.
+ */
 function loadString<F extends Callback = Callback>(chunk: string, chunkName: string): F {
 	const [f, err] = loadstring(chunk, chunkName);
 	assert(f, err);
@@ -66,7 +68,14 @@ export default class AbstractScript {
 	}
 
 	/**
-	 * Tries to require an AbstractScript from the given Roblox script.
+	 * Gets the full name of the instance.
+	 */
+	identify(): string {
+		return this.instance.GetFullName();
+	}
+
+	/**
+	 * Tries to require an AbstractScript from the given Roblox script. Used when *this* script requires another module.
 	 */
 	async require(module: ModuleScript) {
 		const abstract = AbstractScript.getFromInstance(module);
@@ -78,8 +87,7 @@ export default class AbstractScript {
 	 * Sets the executor function. Automatically updates the global environment for the executor.
 	 */
 	setExecutor(executor: () => unknown) {
-		this.executor = executor;
-		setfenv(executor, this.environment);
+		this.executor = setfenv(executor, this.environment);
 	}
 
 	/**
@@ -98,7 +106,7 @@ export default class AbstractScript {
 
 		// Note that 'caller' required this module, and check for a cyclic dependency
 		validator.track(caller, this);
-		validator.validate(this);
+		validator.traceback(this);
 
 		const result = await this.execute();
 
@@ -118,7 +126,7 @@ export default class AbstractScript {
 		this.didExecute = true;
 
 		if (this.instance.IsA("ModuleScript") && this.result === undefined)
-			throw `Module '${this.instance.GetFullName()}' did not return any value`;
+			throw `Module '${this.identify()}' did not return any value`;
 
 		return this.result;
 	}
@@ -130,7 +138,7 @@ export default class AbstractScript {
 	async defer(): Promise<unknown> {
 		return Promise.defer((resolve) => this.execute().andThen(resolve)).timeout(
 			30,
-			`Script '${this.instance.GetFullName()}' reached execution timeout! Try not to yield the main thread in LocalScripts.`,
+			`Script '${this.identify()}' reached execution timeout! Try not to yield the main thread in LocalScripts.`,
 		);
 	}
 }
