@@ -1,6 +1,6 @@
 import Object from "@rbxts/object-utils";
 
-type PathMap = { [path: string]: string | PathMap };
+type PathMap = { [K in string]: string | PathMap };
 
 /**
  * Reads the file at the give path.
@@ -54,16 +54,15 @@ export const createDirAll = (path: string, requireTrailingSlash = false) => {
  * ``` ts
  * createPathTree({
  *     "file.json": "{'foo': 'bar'}",
- *     folder: {
+ *     "folder": {
  *         "child.txt": "Hello, world!",
  *     },
  * });
  * ```
  */
 export const createPathTree = (pathMap: PathMap) => {
-	// Why is path's type "string | number"?
 	for (const [path, data] of Object.entries(pathMap))
-		typeIs(data, "table") ? createPathTree(data) : writeFile(path as string, data);
+		typeIs(data, "table") ? (createDirAll(path), createPathTree(data)) : writeFile(path, data);
 };
 
 /**
