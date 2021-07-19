@@ -1,9 +1,9 @@
+import { defer } from "utils/defer";
 import AbstractScriptStore from "./AbstractScriptStore";
-import DependencyValidator from "./DependencyValidator";
 
-type RobloxScript = Script | LocalScript | ModuleScript;
+export type RobloxScript = Script | LocalScript | ModuleScript;
 
-interface Environment {
+export interface Environment {
 	/** A reference to the script the AbstractScript extends. */
 	script: RobloxScript;
 
@@ -22,28 +22,26 @@ function loadString<F extends Callback = Callback>(chunk: string, chunkName: str
 
 /**
  * Extends script objects to be fully-functional in an exploit.
+ * @abstract
  */
-export default class AbstractScript {
-	/** Maps AbstractScript objects to their script objects. */
-	private static readonly fromInstance = new AbstractScriptStore();
+export default abstract class AbstractScript<T extends RobloxScript = RobloxScript> {
+	/**
+	 * Maps AbstractScript objects to their script objects.
+	 */
+	protected static readonly fromInstance = new AbstractScriptStore();
 
-	/** Emits verbose errors for cyclic dependencies. */
-	private static readonly dependencyValidator = new DependencyValidator();
-
-	/** Whether the `execute` function was already called. */
-	didExecute = false;
-
-	/** Stores the result of `executor()` after being called. */
-	result?: unknown;
-
-	/** The global environment to apply to the executor. */
+	/**
+	 * The global environment to apply to the executor.
+	 */
 	environment: Environment;
 
+	/**
+	 * @param instance The script object to extend.
+	 * @param executor Optional function to call when running or requiring the object.
+	 */
 	constructor(
-		/** The script object to extend. */
-		public readonly instance: RobloxScript,
+		public readonly instance: T,
 
-		/** Optional function to call when running or requiring the object. */
 		public executor: () => unknown = loadString(instance.Source, `=${instance.GetFullName()}`),
 	) {
 		this.environment = setmetatable<Environment>(
@@ -75,9 +73,11 @@ export default class AbstractScript {
 	}
 
 	/**
-	 * Tries to require an AbstractScript from the given Roblox script. Used when *this* script requires another module.
+	 * Tries to require an AbstractScript from the given Roblox script.
+	 *
+	 * Used when this script requires another module.
 	 */
-	async require(module: ModuleScript) {
+	async require(module: ModuleScript): Promise<unknown> {
 		const abstract = AbstractScript.getFromInstance(module);
 		if (abstract) return abstract.executeAsDependency(this);
 		else return require(module);
@@ -91,54 +91,26 @@ export default class AbstractScript {
 	}
 
 	/**
-	 * Runs the executor function if not already run and returns results.
-	 *
-	 * Detects recursive references using roblox-ts's RuntimeLib solution.
-	 * The original source of this module can be found in the link below, as well as the license:
-	 * - Source: https://github.com/roblox-ts/roblox-ts/blob/master/lib/RuntimeLib.lua
-	 * - License: https://github.com/roblox-ts/roblox-ts/blob/master/LICENSE
-	 *
-	 * @param caller The AbstractScript that required this module.
-	 * @returns What the executor returned.
-	 */
-	async executeAsDependency(caller: AbstractScript): Promise<unknown> {
-		const { dependencyValidator: validator } = AbstractScript;
-
-		// Note that 'caller' required this module, and check for a cyclic dependency
-		validator.track(caller, this);
-		validator.traceback(this);
-
-		const result = await this.execute();
-
-		validator.untrack(caller, this);
-
-		return result;
-	}
-
-	/**
-	 * Runs the executor function if not already run and returns results.
-	 * @returns What the executor returned.
-	 */
-	async execute(): Promise<unknown> {
-		if (this.didExecute) return this.result;
-
-		this.result = this.executor();
-		this.didExecute = true;
-
-		if (this.instance.IsA("ModuleScript") && this.result === undefined)
-			throw `Module '${this.identify()}' did not return any value`;
-
-		return this.result;
-	}
-
-	/**
 	 * Runs the executor function on a new thread.
 	 * @returns What the executor returned.
 	 */
-	async defer(): Promise<unknown> {
-		return Promise.defer((resolve) => this.execute().andThen(resolve)).timeout(
-			30,
-			`Script '${this.identify()}' reached execution timeout! Try not to yield the main thread in LocalScripts.`,
+	defer(): Promise<unknown> {
+		return defer(() => this.execute()).timeout(
+			10,
+			`Script '${this.identify()}' timed out! Try not to yield the main thread in LocalScripts.`,
 		);
 	}
+
+	/**
+	 * Runs the executor function.
+	 * @returns What the executor returned.
+	 */
+	abstract execute(): Promise<unknown>;
+
+	/**
+	 * Runs the executor function if not already run and returns results.
+	 * @param caller The AbstractScript that required this module.
+	 * @returns What the executor returned.
+	 */
+	protected abstract executeAsDependency(caller: AbstractScript): Promise<unknown>;
 }
