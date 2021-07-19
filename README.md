@@ -109,15 +109,14 @@ No need to build several files at runtime. **Just plug in a model file, that's i
 > The Promise only resolves **after** each script finishes running on the **main thread** (max 10-sec timeout).
 > 
 > If **one script** throws an error on the **main thread**, the entire Promise will cancel.
-> 
-> ```lua
-> local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-> 
-> project:start()
-> ```
+
+```lua
+local project = rbxmSuite.Project.new("path/to/Project.rbxm")
+
+project:start()
+```
 
 </details>
-<br/>
 
 ---
 
@@ -135,29 +134,28 @@ No need to build several files at runtime. **Just plug in a model file, that's i
 > 
 > `module` must be a ModuleScript created by the Project!
 > 
-> ```lua
-> local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-> local myModule = project.instance.Modules.MyModule
-> 
-> project:require(myModule)
-> 	:andThen(function(MyModule)
-> 		-- Use module
-> 	end)
-> ```
+```lua
+local project = rbxmSuite.Project.new("path/to/Project.rbxm")
+local myModule = project.instance.Modules.MyModule
+
+project:require(myModule)
+	:andThen(function(MyModule)
+		-- Use module
+	end)
+```
 
 > Wait for the module to require with `Promise.expect`:
 > 
-> ```lua
-> local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-> local myModule = project.instance.Modules.MyModule
-> 
-> local MyModule = project:require(myModule):expect()
-> ```
+```lua
+local project = rbxmSuite.Project.new("path/to/Project.rbxm")
+local myModule = project.instance.Modules.MyModule
+
+local MyModule = project:require(myModule):expect()
+```
 
 > Note that the root `instance` can also be a module, if you'd like to distribute a library!
 
 </details>
-<br/>
 
 ---
 
@@ -174,20 +172,18 @@ No need to build several files at runtime. **Just plug in a model file, that's i
 > Downloads the release asset for this version **once**.
 > 
 > If `Roact.rbxm` exists in the cache, the Promise will instantly resolve.
-> 
-> ```lua
-> rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
-> ```
+```lua
+rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
+```
 
 > **`@latest`**
 > 
 > Automatically downloads and updates the asset to the latest version.
 > 
 > This function **always** yields to check the latest version!
-> 
-> ```lua
-> rbxmSuite.Project.fromGitHub("Roblox/roact@latest", "Roact.rbxm"):expect()
-> ```
+```lua
+rbxmSuite.Project.fromGitHub("Roblox/roact@latest", "Roact.rbxm"):expect()
+```
 
 > **`deferred`**
 > 
@@ -196,9 +192,9 @@ No need to build several files at runtime. **Just plug in a model file, that's i
 > Processes like version-checking and downloading will happen in the background, unless this is a first-time download.
 > 
 > The `deferred` flag can only be used with the `@latest` tag!
-> 
-> ```lua
-> rbxmSuite.Project.fromGitHub("Roblox/roact@latest#deferred", "Roact.rbxm"):expect()
+```lua
+rbxmSuite.Project.fromGitHub("Roblox/roact@latest#deferred", "Roact.rbxm"):expect()
+```
 
 </details>
 <br/>
