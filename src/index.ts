@@ -3,8 +3,6 @@
  * Description: Tools for loading exploit projects from Roblox model files
  */
 
-// Main process
+import "storage";
 
-export {};
-
-Promise.delay(2).andThen(() => print("Hello from rbxmSuite!"));
+export { Project, AssetDownloader } from "core";
