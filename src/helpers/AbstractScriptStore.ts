@@ -9,12 +9,3 @@ export default class AbstractScriptStore extends Store<LuaSourceContainer, Abstr
 		super("AbstractScriptStore");
 	}
 }
-
-/**
- * Maps scripts to the module they're loading, like a history of `[script who loaded]: module`
- */
-export class AbstractScriptDependencyStore extends Store<AbstractScript, AbstractScript> {
-	constructor() {
-		super("AbstractScriptDependencyStore");
-	}
-}
