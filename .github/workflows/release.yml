@@ -30,6 +30,6 @@ jobs:
         with:
           draft: true
           prerelease: false
-          files: rbxm-suite/rbxmSuite.lua
+          files: rbxmSuite.lua
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
