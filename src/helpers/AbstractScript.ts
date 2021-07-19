@@ -42,7 +42,6 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 
 	/**
 	 * @param instance The script object to extend.
-	 * @param executor Optional function to call when running or requiring the object.
 	 */
 	constructor(public readonly instance: T) {
 		this.environment = setmetatable<Environment>(
