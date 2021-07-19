@@ -4,9 +4,9 @@
   "description": "Tools for loading exploit projects from Roblox model files",
   "main": "index.js",
   "scripts": {
-    "build": "sh ci/build/build-release.sh",
+    "build": "bash ci/build/build-release.sh",
     "build:min": "bash ci/build/build-minify.sh",
-    "build:dev": "sh ci/build/build-dev.sh",
+    "build:dev": "bash ci/build/build-dev.sh",
     "compile": "npx rbxtsc --verbose --type=model",
     "rojo": "rojo build -o rbxmSuite.rbxm",
     "remodel": "remodel run ci/build/build-to-script.lua rbxmSuite.rbxm",
