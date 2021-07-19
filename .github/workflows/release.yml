@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
   release:
@@ -28,8 +28,6 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
           draft: true
           prerelease: false
           files: rbxm-suite/rbxmSuite.lua
