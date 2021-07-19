@@ -40,7 +40,7 @@ jobs:
           node-version: "14"
 
       - name: Install dependencies
-        run: yarn
+        run: npm i
 
       - name: Install foreman
         uses: Roblox/setup-foreman@v1
@@ -48,13 +48,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run roblox-ts compiler
-        run: yarn compile
+        run: npm run compile
 
       - name: Build model with Rojo
-        run: yarn rojo
+        run: npm run rojo
 
       - name: Build rbxmSuite
-        run: yarn build:min
+        run: npm run build:min
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v2
