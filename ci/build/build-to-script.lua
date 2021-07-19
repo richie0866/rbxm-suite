@@ -15,16 +15,15 @@ local function getTree(instance)
 end
 
 local MODULE_FORMAT = table.concat({
-	"[%s] = function()",
-	"\tlocal script = Script.new(%s)",
-	"\tlocal require = _safeRequireModule",
+	"[Pointer.new(%s)] = function()",
+	"\tlocal script = Pointer.new(%s)",
 	"",
 	"\t%s",
 	"end",
 }, "\n")
 
 local function moduleNode(instance)
-	local pathArray = "{ [=[" .. table.concat(getTree(instance), "]=], [=[") .. "]=] }"
+	local pathArray = "{ [[" .. table.concat(getTree(instance), "]], [[") .. "]] }"
 	return string.format(
 		MODULE_FORMAT,
 		pathArray,
@@ -49,7 +48,7 @@ end
 local nodes = modulesToNodes(root)
 
 -- Get the module runtime script
-local runtime = remodel.readFile("bin/module-runtime.lua")
+local runtime = remodel.readFile("ci/build/runtime.lua")
 
 -- Replace the --[[@MODEL_NAME]] marker with the rbxm file's name
 runtime = string.gsub(runtime, "%-%-%[%[@MODEL_NAME%]%]", modelFileName)
@@ -65,4 +64,4 @@ local output = table.concat({
 -- Output folder
 remodel.writeFile(modelFileName .. ".lua", output)
 
-return modelFileName .. ".lua"
+print(modelFileName .. ".lua")
