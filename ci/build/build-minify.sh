@@ -18,7 +18,7 @@ fix_promise_vararg_call() {
 }
 
 wrap_in_function_call() {
-	echo $'local rbxmSuite = (function()\n\n'"	$(cat)"$'\n\nend)()\n\nreturn rbxmSuite'
+	echo "$'local rbxmSuite = (function()\n\n'"	$(cat)"$'\n\nend)()\n\nreturn rbxmSuite'"
 }
 
 minify() {
