@@ -7,7 +7,7 @@
     "build": "sh ci/build/build-release.sh",
     "build:min": "sh ci/build/build-minify.sh",
     "build:dev": "sh ci/build/build-dev.sh",
-    "compile": "cross-env NODE_ENV=production TYPE=Luau rbxtsc --verbose --type=model",
+    "compile": "NODE_ENV=production TYPE=Luau rbxtsc --verbose --type=model",
     "rojo": "rojo build -o rbxmSuite.rbxm",
     "remodel": "remodel run ci/build/build-to-script.lua rbxmSuite.rbxm",
     "watch": "rbxtsc -w",
