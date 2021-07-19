@@ -1,2 +1,2 @@
-export * from "./fs";
+export * as fs from "./fs";
 export * from "./engine";
