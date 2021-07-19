@@ -88,7 +88,7 @@ export const trimSlashes = (path: string): string => path.gsub("^/*(.-)/*$", "%1
 /**
  * Replaces back-slashes with forward-slashes.
  */
-export const normalize = (path: string): string => path.gsub("/", "\\")[0] as string;
+export const normalize = (path: string): string => path.gsub("\\", "/")[0] as string;
 
 /**
  * Adds a trailing slash to the path if one doesn't already exist.
