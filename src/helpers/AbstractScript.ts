@@ -36,14 +36,15 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 	environment: Environment;
 
 	/**
+	 * Optional function to call when running or requiring the object.
+	 */
+	executor?: () => unknown;
+
+	/**
 	 * @param instance The script object to extend.
 	 * @param executor Optional function to call when running or requiring the object.
 	 */
-	constructor(
-		public readonly instance: T,
-
-		public executor: () => unknown = loadString(instance.Source, `=${instance.GetFullName()}`),
-	) {
+	constructor(public readonly instance: T) {
 		this.environment = setmetatable<Environment>(
 			{
 				script: instance,
@@ -54,7 +55,6 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 				__metatable: "This metatable is locked",
 			},
 		);
-		setfenv(executor, this.environment);
 		AbstractScript.fromInstance.set(instance, this);
 	}
 
@@ -86,8 +86,17 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 	/**
 	 * Sets the executor function. Automatically updates the global environment for the executor.
 	 */
-	setExecutor(executor: () => unknown) {
-		this.executor = setfenv(executor, this.environment);
+	setExecutor(executor: () => unknown): () => unknown {
+		return (this.executor = setfenv(executor, this.environment));
+	}
+
+	/**
+	 * Sets the executor function if it doesn't already exist.
+	 */
+	createExecutor(): () => unknown {
+		const { executor, instance } = this;
+		if (executor) return executor;
+		else return this.setExecutor(loadString(instance.Source, `=${instance.GetFullName()}`));
 	}
 
 	/**

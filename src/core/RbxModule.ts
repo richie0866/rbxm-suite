@@ -42,7 +42,8 @@ export default class RbxModule extends AbstractScript<ModuleScript> {
 	async execute(): Promise<unknown> {
 		if (this.didExecute) return this.result;
 
-		const result = this.executor();
+		const result = this.createExecutor()();
+
 		this.didExecute = true;
 
 		assert(result, `Module '${this.identify()}' did not return any value`);

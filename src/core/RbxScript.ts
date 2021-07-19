@@ -24,7 +24,7 @@ export default class RbxScript extends AbstractScript<LocalScript> {
 	 * @returns What the executor returned.
 	 */
 	async execute(): Promise<unknown> {
-		return this.executor();
+		return this.createExecutor()();
 	}
 
 	/**
