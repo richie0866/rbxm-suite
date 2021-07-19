@@ -1,36 +1,36 @@
 name: CI
 
 on:
-	push:
-		tags:
-			- 'v*'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-	release:
-		name: Release
-		runs-on: ubuntu-latest
-		steps:
-			- name: Checkout repo
-				uses: actions/checkout@v2
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
 
-			- name: Install Node.js v14
-				uses: actions/setup-node@v2
-				with:
-					node-version: "14"
+      - name: Install Node.js v14
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
 
-			- name: Download release artifact
-				uses: actions/download-artifact@v2
-				with:
-					name: rbxm-suite
-					path: rbxmSuite.lua
+      - name: Download release artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: rbxm-suite
+          path: rbxmSuite.lua
 
-			- name: Upload to release
-				uses: softprops/action-gh-release@v1
-				with:
-					tag_name: ${{ github.ref }}
-					release_name: ${{ github.ref }}
-					draft: true
-					prerelease: false
-					files: rbxmSuite.lua
-				env:
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+          files: rbxmSuite.lua
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
