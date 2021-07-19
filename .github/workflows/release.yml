@@ -19,10 +19,11 @@ jobs:
           node-version: "14"
 
       - name: Download release artifact
-        uses: actions/download-artifact@v2
+        uses: dawidd6/action-download-artifact@v2
         with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          workflow: ci.yml
           name: rbxm-suite
-          path: rbxmSuite.lua
 
       - name: Upload to release
         uses: softprops/action-gh-release@v1
@@ -31,6 +32,6 @@ jobs:
           release_name: ${{ github.ref }}
           draft: true
           prerelease: false
-          files: rbxmSuite.lua
+          files: rbxm-suite/rbxmSuite.lua
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
