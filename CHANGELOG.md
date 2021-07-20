@@ -24,6 +24,10 @@
 
   - item
 
+⭐ Small changes
+
+  - Make `Store.onChange` public cda748f19b28b731213dff60030fc1bccc49ab34 @richie0866
+
 # v1.0.1
 
 ## New Features
