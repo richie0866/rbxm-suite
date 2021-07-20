@@ -1,8 +1,6 @@
 <h1 align="center">
 	<br>
-	<a href="https://google.com">
-		<img src="logo.png" alt="rbxm">
-	</a>
+	<img src="logo.png" alt="rbxm">
 	<br>
 	rbxmSuite
 	<br>
