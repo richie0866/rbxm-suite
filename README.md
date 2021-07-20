@@ -28,7 +28,7 @@
 
 🌿 Roblox-like script runtime - Special `script` and `require` variables
 
-🧬 Cross-project module usage
+🧬 Use modules across projects
 
 ❌ Verbose errors for cyclic dependencies
 
@@ -37,9 +37,9 @@
 
 ## 🌻 Motivation
 
-While [Rostruct](https://github.com/richie0866/Rostruct) can load simple stand-alone projects, it **falls short with Rojo project files**.
+While [Rostruct](https://github.com/richie0866/Rostruct) can load simple stand-alone projects, it **falls short with when compared to Rojo**.
 
-Rostruct also **always rebuilds your project at runtime**, which is excessive. Rojo is a much better tool for building your project files.
+Rostruct will **always rebuild your project at runtime**, when it should be handled on production. Its build process also tries to match [Rojo](https://rojo.space)'s, but it lacks key features, like `project.json` files. Using [Rojo](https://rojo.space) to build your project instead is a **much safer solution**.
 
 By moving the build process upstream with Rojo, you can take full advantage of a **true Rojo workflow**.
 
@@ -58,7 +58,7 @@ local rbxmSuite = loadstring(
 -- Use rbxmSuite
 ```
 
-You can also download `rbxmSuite.lua` and modify it yourself:
+Or, you can download `rbxmSuite.lua` and modify it yourself:
 
 ``` lua
 local rbxmSuite = (function()
@@ -75,9 +75,9 @@ local rbxmSuite = (function()
 
 ## ❓ What's rbxmSuite?
 
-`rbxmSuite` is the spiritual successor to Rostruct, designed for **only rbxm(x) file runtime**.
+`rbxmSuite` is the spiritual successor to Rostruct, designed for **rbxm(x) file runtime**.
 
-No need to build several files at runtime. **Just plug in a model file, that's it!**
+No need to build several files with a mock Rojo - **Use the real thing, and plug in the model file, that's it!**
 
 <br/>
 
@@ -85,10 +85,10 @@ No need to build several files at runtime. **Just plug in a model file, that's i
 ## ✨ Supported workflows
 
 ### ⚡ Rojo
-* Build your projects to Roblox model files with [Rojo](https://rojo.space).
+* Build your Roblox projects with [Rojo](https://rojo.space).
 
 ### ⚡ TypeScript
-* Write, compile, and build your code with [roblox-ts](https://roblox-ts.com) (must be the `model` type!)
+* Write and compile TypeScript code with [roblox-ts](https://roblox-ts.com) (must be the `model` type!)
 
 <br/>
 
@@ -165,13 +165,13 @@ local MyModule = project:require(myModule):expect()
 👩🏾‍💻 <strong>Retrieve a project from GitHub</strong>
 </summary>
 
-> Release format: `"owner/repo@tag#flags"`
+> Release format: `"owner/repo@tag_name#flags"`
 
-> **`@tag`**
+> **`@tag_name`**
 > 
-> Downloads the release asset for this version **once**.
+> Downloads the release asset for this Git tag **once**.
 > 
-> If `Roact.rbxm` exists in the cache, the Promise will instantly resolve.
+> This means if the asset has been downloaded before, the Promise resolves immediately.
 ```lua
 rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
 ```
@@ -180,16 +180,16 @@ rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
 > 
 > Automatically downloads and updates the asset to the latest version.
 > 
-> This function **always** yields to check the latest version!
+> If `@latest` is set without the `deferred` flag, it will **always** yield to get the latest version!
 ```lua
 rbxmSuite.Project.fromGitHub("Roblox/roact@latest", "Roact.rbxm"):expect()
 ```
 
 > **`deferred`**
 > 
-> If `Roact.rbxm` exists in the cache, the Promise will instantly resolve.
-> 
 > Processes like version-checking and downloading will happen in the background, unless this is a first-time download.
+> 
+> This means if the asset has been downloaded before, the Promise resolves immediately.
 > 
 > The `deferred` flag can only be used with the `@latest` tag!
 ```lua
@@ -206,4 +206,4 @@ rbxmSuite.Project.fromGitHub("Roblox/roact@latest#deferred", "Roact.rbxm"):expec
 
 Since this module is written in TypeScript, it depends on some roblox-ts packages and modules.
 
-The project's minified Luau output is ~40kb. As a result, it is larger than a stand-alone Luau implementation.
+The project's minified Luau output is ~40kb. As a result, it is larger than a standard Luau implementation.
