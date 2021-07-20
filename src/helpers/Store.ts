@@ -11,14 +11,14 @@ const stores: Map<string, Map<unknown, unknown>> = "__RBXM_SUITE_STORES" in getg
  */
 export default abstract class Store<K extends unknown, V extends unknown> {
 	/**
-	 * The internal state of the store.
+	 * Signal that fires when the store changes.
 	 */
-	protected state: Map<K, V>;
+	readonly onChange = new Signal();
 
 	/**
 	 * The internal state of the store.
 	 */
-	protected onChange = new Signal();
+	protected state: Map<K, V>;
 
 	/**
 	 * @param id A unique identifier for the store.
