@@ -100,6 +100,8 @@ No need to build several files with a mock Rojo - **Use the real thing, and plug
 👩🏾‍💻 <strong>Run a project</strong>
 </summary>
 
+<br/>
+
 > ``` ts
 > function project:start(): Promise<LocalScript[]>
 > ```
@@ -109,7 +111,6 @@ No need to build several files with a mock Rojo - **Use the real thing, and plug
 > The Promise only resolves **after** each script finishes running on the **main thread** (max 10-sec timeout).
 > 
 > If **one script** throws an error on the **main thread**, the entire Promise will cancel.
-
 ```lua
 local project = rbxmSuite.Project.new("path/to/Project.rbxm")
 
@@ -125,6 +126,8 @@ project:start()
 <summary>
 👩🏾‍💻 <strong>Require a specific module</strong>
 </summary>
+
+<br/>
 
 > ``` ts
 > function project:require(module: ModuleScript): Promise<unknown>
@@ -144,6 +147,8 @@ project:require(myModule)
 	end)
 ```
 
+<br/>
+
 > Wait for the module to require with `Promise.expect`:
 > 
 ```lua
@@ -152,6 +157,8 @@ local myModule = project.instance.Modules.MyModule
 
 local MyModule = project:require(myModule):expect()
 ```
+
+<br/>
 
 > Note that the root `instance` can also be a module, if you'd like to distribute a library!
 
@@ -165,9 +172,13 @@ local MyModule = project:require(myModule):expect()
 👩🏾‍💻 <strong>Retrieve a project from GitHub</strong>
 </summary>
 
+<br/>
+
 > Release format: `"owner/repo@tag_name#flags"`
 
-> **`@tag_name`**
+<br/>
+
+> 🔖 **`@tag_name`**
 > 
 > Downloads the release asset for this Git tag **once**.
 > 
@@ -176,7 +187,9 @@ local MyModule = project:require(myModule):expect()
 rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
 ```
 
-> **`@latest`**
+<br/>
+
+> 🔖 **`@latest`**
 > 
 > Automatically downloads and updates the asset to the latest version.
 > 
@@ -185,7 +198,9 @@ rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
 rbxmSuite.Project.fromGitHub("Roblox/roact@latest", "Roact.rbxm"):expect()
 ```
 
-> **`deferred`**
+<br/>
+
+> 🚩 **`deferred`**
 > 
 > Processes like version-checking and downloading will happen in the background, unless this is a first-time download.
 > 
