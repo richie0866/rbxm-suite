@@ -24,6 +24,12 @@
 
   - item
 
+# v1.0.3
+
+## Bug Fixes
+
+	- Fix bug with cyclic dependencies bafb39b1df28e9b7c55b9eb0695e255b1e9c93ec @richie0866
+
 # v1.0.2
 
 ## New Features
