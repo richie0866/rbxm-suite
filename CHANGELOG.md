@@ -24,6 +24,16 @@
 
   - item
 
+# v1.0.2
+
+## New Features
+
+⭐ Add `unsafe` parameter to disable cyclic dependency errors
+
+  - Add `unsafe` parameter 58ba4b1f3818586d451e941d5af4a634cf4e665d @richie0866
+
+## Development
+
   - Make `Store.onChange` public cda748f19b28b731213dff60030fc1bccc49ab34 @richie0866
   - Rephrase README to be more readable @richie0866
 
