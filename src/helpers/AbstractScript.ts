@@ -42,8 +42,9 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 
 	/**
 	 * @param instance The script object to extend.
+	 * @param unsafe Whether cyclic dependencies should be checked against.
 	 */
-	constructor(public readonly instance: T) {
+	constructor(public readonly instance: T, public readonly unsafe = false) {
 		this.environment = setmetatable<Environment>(
 			{
 				script: instance,
@@ -78,8 +79,11 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 	 */
 	async require(module: ModuleScript): Promise<unknown> {
 		const abstract = AbstractScript.getFromInstance(module);
-		if (abstract) return abstract.executeAsDependency(this);
-		else return require(module);
+		if (abstract) {
+			return this.unsafe ? abstract.executeAsDependencyUnsafe(this) : abstract.executeAsDependency(this);
+		} else {
+			return require(module);
+		}
 	}
 
 	/**
@@ -94,8 +98,7 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 	 */
 	createExecutor(): () => unknown {
 		const { executor, instance } = this;
-		if (executor) return executor;
-		else return this.setExecutor(loadString(instance.Source, `=${instance.GetFullName()}`));
+		return executor || this.setExecutor(loadString(instance.Source, `=${instance.GetFullName()}`));
 	}
 
 	/**
@@ -121,4 +124,11 @@ export default abstract class AbstractScript<T extends RobloxScript = RobloxScri
 	 * @returns What the executor returned.
 	 */
 	protected abstract executeAsDependency(caller: AbstractScript): Promise<unknown>;
+
+	/**
+	 * Runs the executor function if not already run and returns results. Does not detect cyclic dependencies.
+	 * @param caller The AbstractScript that required this module.
+	 * @returns What the executor returned.
+	 */
+	protected abstract executeAsDependencyUnsafe(caller: AbstractScript): Promise<unknown>;
 }

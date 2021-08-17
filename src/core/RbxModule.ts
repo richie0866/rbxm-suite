@@ -69,4 +69,13 @@ export default class RbxModule extends AbstractScript<ModuleScript> {
 
 		return result;
 	}
+
+	/**
+	 * Runs the executor function if not already run and returns results. Does not detect cyclic dependencies.
+	 * @param caller The AbstractScript that required this module.
+	 * @returns What the executor returned.
+	 */
+	protected async executeAsDependencyUnsafe(caller: AbstractScript): Promise<unknown> {
+		return await this.execute();
+	}
 }

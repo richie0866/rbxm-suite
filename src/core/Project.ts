@@ -38,9 +38,10 @@ export default class Project extends RbxModelBuilder {
 
 	/**
 	 * @param path A path to the `rbxm` or `rbxmx` file.
+	 * @param unsafe Whether cyclic dependencies should be checked against.
 	 */
-	constructor(path: string) {
-		super(path);
+	constructor(path: string, unsafe = false) {
+		super(path, unsafe);
 		super.init();
 	}
 
@@ -50,11 +51,13 @@ export default class Project extends RbxModelBuilder {
 	 * @param assetName The name of the asset file to download. The file type should be `rbxm` or `rbxmx`!
 	 * @returns A Project object built from the downloaded asset.
 	 */
-	static readonly fromGitHub = async (options: string, assetName: string): Promise<Project> => {
+	static readonly fromGitHub = async (options: string, assetName: string, unsafe = false): Promise<Project> => {
 		assert(typeIs(options, "string"), "Release options must be a string");
 		assert(typeIs(assetName, "string"), "Asset name must be a string");
 
-		return await new AssetDownloader(options).retrieve(assetName).andThen((path) => new Project(path));
+		const path = await new AssetDownloader(options).retrieve(assetName);
+
+		return new Project(path, unsafe);
 	};
 
 	/**

@@ -26,8 +26,9 @@ export default abstract class RbxModelBuilder {
 
 	/**
 	 * @param path A path to the `rbxm` or `rbxmx` file.
+	 * @param unsafe Whether cyclic dependencies should be checked against.
 	 */
-	constructor(public readonly path: string) {
+	constructor(public readonly path: string, public readonly unsafe = false) {
 		assert(fs.isFile(path), `File at '${path}' must be a file`);
 
 		const models = game.GetObjects(getCustomAsset(path));
@@ -43,8 +44,8 @@ export default abstract class RbxModelBuilder {
 	 */
 	protected createScript(object: RobloxScript): RbxScript | RbxModule {
 		const rbxScript =
-			(object.IsA("LocalScript") && new RbxScript(object)) ||
-			(object.IsA("ModuleScript") && new RbxModule(object)) ||
+			(object.IsA("LocalScript") && new RbxScript(object, this.unsafe)) ||
+			(object.IsA("ModuleScript") && new RbxModule(object, this.unsafe)) ||
 			error(`Instance '${object.GetFullName()}' must be a client script`);
 
 		this.rbxScripts.push(rbxScript);

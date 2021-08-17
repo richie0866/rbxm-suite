@@ -33,4 +33,11 @@ export default class RbxScript extends AbstractScript<LocalScript> {
 	protected async executeAsDependency(): Promise<unknown> {
 		throw `No require implementation (${this.identify()})`;
 	}
+
+	/**
+	 * #### LocalScripts cannot be required.
+	 */
+	protected async executeAsDependencyUnsafe(): Promise<unknown> {
+		throw `No require implementation (${this.identify()})`;
+	}
 }
