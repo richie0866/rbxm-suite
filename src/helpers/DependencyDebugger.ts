@@ -3,6 +3,8 @@ import { DependencyStore } from "./DependencyStore";
 
 type AbstractModule = AbstractScript<ModuleScript>;
 
+const exception = "(rbxmSuite) Requested module '%s' contains a cyclic reference\n\nTraceback: %s";
+
 /**
  * Emits verbose errors for cyclic dependencies.
  */
@@ -45,19 +47,21 @@ export default class DependencyDebugger {
 		const { currentlyLoading } = DependencyDebugger;
 		const chain: AbstractModule[] = [this.dependency];
 
-		for (
-			let current: AbstractModule | undefined = currentlyLoading.get(this.dependency);
-			current;
-			current = currentlyLoading.get(current)
-		) {
-			chain.push(current);
+		let current: AbstractModule | undefined;
 
-			if (this.dependency === current)
-				throw [
-					`Requested module '${this.dependency.identify()}' contains a cyclic reference`,
-					``,
-					`Traceback: ${chain.map((rbxModule) => rbxModule.identify()).join("\n\t⇒ ")}`,
-				].join("\n");
+		while (current) {
+			current = currentlyLoading.get(current);
+			current && chain.push(current);
+
+			if (current === this.dependency) {
+				error(
+					exception.format(
+						this.dependency.identify(),
+						chain.map((rbxModule) => rbxModule.identify()).join("\n\t⇒ "),
+					),
+					0,
+				);
+			}
 		}
 
 		return chain;
