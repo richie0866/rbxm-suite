@@ -3,7 +3,7 @@ import Object from "@rbxts/object-utils";
 type PathMap = { [K in string]: string | PathMap };
 
 /**
- * Reads the file at the givem path.
+ * Reads the file at the given path.
  */
 export const readFile = (path: string): string => readfile(path);
 
@@ -15,7 +15,7 @@ export const readDir = (path: string): string[] => listfiles(path);
 /**
  * Deletes the file at the given path. Throws an error if no file exists.
  */
-// export const deleteFile = (path: string) => delfile(path);
+export const deleteFile = (path: string) => delfile(path);
 
 /**
  * Deletes the directory at the given path. Throws an error if no directory exists.
@@ -41,20 +41,22 @@ export const inferIsDir = (path: string): boolean => path.sub(-1) === "/";
  * Writes to the file at the given path.
  */
 export const writeFile = (path: string, content = "") => {
-	createDirAll(path, true);
+	writeDir(path, true);
 	writefile(path, content);
 };
 
 /**
  * Makes a directory at the given path, as well as all parent directories that do not yet exist.
  */
-export const createDirAll = (path: string, requireTrailingSlash = false) => {
+export const writeDir = (path: string, requireTrailingSlash = false) => {
 	let currentPath = "";
 
 	// If 'requireTrailingSlash' is true, append the string pattern with '/+',
 	// which makes it only match tokens ending with a forward-slash.
-	for (const [token] of path.gmatch(requireTrailingSlash ? "([^/]+)/+" : "([^/]+)"))
-		makefolder((currentPath += token + "/"));
+	for (const [token] of path.gmatch(requireTrailingSlash ? "([^/]+)/+" : "([^/]+)")) {
+		currentPath += token + "/";
+		makefolder(currentPath);
+	}
 };
 
 /**
@@ -71,13 +73,14 @@ export const createDirAll = (path: string, requireTrailingSlash = false) => {
  * ```
  */
 export const createPathTree = (pathMap: PathMap, root = "") => {
-	for (const [path, data] of Object.entries(pathMap))
+	for (const [path, data] of Object.entries(pathMap)) {
 		if (typeIs(data, "table")) {
-			createDirAll(root + path);
+			writeDir(root + path);
 			createPathTree(data, root + addTrailing(path));
 		} else {
 			writeFile(root + path, data);
 		}
+	}
 };
 
 /**
