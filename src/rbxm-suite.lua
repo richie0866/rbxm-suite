@@ -1,40 +1,48 @@
----Runs projects using Roblox model files.  
----@author 0866
+---**rbxm-suite** is a tool designed for exploiting with a Rojo-based workflow.
+---Loads a given model into the game and runs every script.
 local rbxmSuite = {}
 
 ---@class Options
----@field debug            boolean Enable debug mode, default is false
----@field run_scripts      boolean Run all enabled LocalScripts, default is true
----@field verbose          boolean Enable verbose mode, default is false
----@field no_circular_deps boolean Enable circular dependency prevention, default is true
+---@field debug          boolean Enable debug mode, default is false
+---@field runscripts     boolean Run all enabled LocalScripts, default is true
+---@field verbose        boolean Enable verbose mode, default is false
+---@field nocirculardeps boolean Enable circular dependency prevention, default is true
 
----Returns a local asset id for the given file path.
+---@class Context
+---@field options      Options | nil
+---@field currentId    number
+---@field idToInstance table<number, Instance>
+---@field instanceToId table<Instance, number>
+---@field moduleToData table<string, table>
+---@field modules      table<number, function>
+
+---The name of the script displayed in logs and error traceback.
+local PROGRAM_NAME = "rbxm-suite"
+---The name of the cache folder used to store GitHub assets.
+local CACHE_FOLDER_NAME = "_rbxm-suite-v2"
+---The key used to store the execution context globally.
+local CONTEXT_KEY = "__rbxm_suite_context"
+
 ---@type fun(path: string): string
 local fileAsContent = getsynasset or getcustomasset or error("File -> Content API not found")
----Makes an HTTP request.
+
 ---@type fun(requestOptions: table): table
 local requestAsync = syn and syn.request or request or error("HTTP request API not found")
 
 ---Shares information between sessions.
-local context = getgenv().__rbxm_suite_context or {
-	---@type Options | nil
-	options = nil,
-	---@type number
-	currentId = 0,
-	---@type table<number, Instance>
-	idToInstance = {},
-	---@type table<Instance, number>
-	instanceToId = {},
-	---@type table<string, table>
-	moduleToData = {},
-	---@type table<number, function>
-	packages = {},
-}
-getgenv().__rbxm_suite_context = context
-
----Stores currently loading packages.
----@type table<LocalScript|ModuleScript, ModuleScript>
-local currentlyLoading = {}
+---@type Context
+local context = getgenv()[CONTEXT_KEY]
+if not getgenv()[CONTEXT_KEY] then
+	context = {
+		options = nil,
+		currentId = 0,
+		idToInstance = {},
+		instanceToId = {},
+		moduleToData = {},
+		modules = {},
+	}
+	getgenv()[CONTEXT_KEY] = context
+end
 
 ---Logs a message with rconsole. Only works in verbose mode.
 ---@vararg string
@@ -44,42 +52,38 @@ local function log(...)
 	end
 end
 
----Utility functions for GitHub download data.
+---Library for downloading and version checking GitHub Releases.
 local github = {}
 do
 	local HttpService = game:GetService("HttpService")
 
 	---Creates a new release cache.
 	function github.init()
-		if isfolder("_rbxm-suite-v2") then
-			return
-		end
-		makefolder("_rbxm-suite-v2")
-		makefolder("_rbxm-suite-v2\\models")
-		writefile("_rbxm-suite-v2\\latest.json", "{}")
+		makefolder(CACHE_FOLDER_NAME)
+		makefolder(CACHE_FOLDER_NAME .. "\\models")
+		writefile(CACHE_FOLDER_NAME .. "\\latest.json", "{}")
 	end
 
 	---Deletes and recreates the release cache.
 	function github.repair()
-		delfolder(".rbxm-suite")
-		delfolder("_rbxm-suite-v2")
+		delfolder(CACHE_FOLDER_NAME)
 		github.init()
 	end
 
 	---Updates the latest.json file with the given updater function.
 	---@param updater function
 	function github.updateVersions(updater)
-		local latest = readfile("_rbxm-suite-v2\\latest.json")
+		local latest = readfile(CACHE_FOLDER_NAME .. "\\latest.json")
 		local data = HttpService:JSONDecode(latest)
 		updater(data)
-		writefile("_rbxm-suite-v2\\latest.json", HttpService:JSONEncode(data))
+		writefile(CACHE_FOLDER_NAME .. "\\latest.json", HttpService:JSONEncode(data))
 	end
 
 	---Returns the installed version of the given id.
 	---@param id string
 	---@return string?
 	function github.version(id)
-		local latest = readfile("_rbxm-suite-v2\\latest.json")
+		local latest = readfile(CACHE_FOLDER_NAME .. "\\latest.json")
 		return HttpService:JSONDecode(latest)[id]
 	end
 
@@ -97,7 +101,7 @@ do
 	---@param id string
 	---@return string
 	function github.path(id)
-		return "_rbxm-suite-v2\\models\\" .. id
+		return CACHE_FOLDER_NAME .. "\\models\\" .. id
 	end
 
 	---Returns the URL to download the asset.
@@ -183,9 +187,11 @@ do
 			return path
 		end
 	end
-
-	github.init()
 end
+
+---Stores currently loading modules.
+---@type table<LocalScript | ModuleScript, ModuleScript>
+local currentlyLoading = {}
 
 ---Checks if requiring this module will result in a circular dependency.
 ---https://github.com/roblox-ts/roblox-ts/blob/master/lib/RuntimeLib.lua#L74
@@ -234,7 +240,7 @@ local function loadModule(module, this)
 		end
 		return context.moduleToData[module].data
 	else
-		local data = context.packages[context.instanceToId[module]]()
+		local data = context.modules[context.instanceToId[module]]()
 		context.moduleToData[module] = { data = data }
 		if cleanup then
 			cleanup()
@@ -285,29 +291,26 @@ local function writeModule(object, path, out)
 	context.idToInstance[context.currentId] = object
 	context.instanceToId[object] = context.currentId
 
+	local id = context.currentId
+	local noCircularDeps = tostring(context.options.nocirculardeps)
+
 	if context.options.debug then
-		table.insert(out, table.concat({
-			"context.packages[ " ..  context.currentId .. " ] = function()\n",
-			"local fn = assert(loadstring(",
-			"context.idToInstance[ " .. context.currentId .. " ].Source, ",
-			"'@'.." .. string.format("%q", path),
-			"))\n",
-			"setfenv(fn, createModuleEnvironment( ",
-			context.currentId .. ", " .. tostring(context.options.no_circular_deps),
-			" ))\n",
-			"return fn()\n",
+		local code = table.concat({
+			"context.modules[", id, "] = function()",
+			"local fn = assert(loadstring(context.idToInstance[", id, "].Source, '@'..", string.format("%q", path), "))",
+			"setfenv(fn, createModuleEnvironment(", id, ", ", noCircularDeps, "))",
+			"return fn()",
 			"end\n\n",
-		}, ""))
+		}, "\n")
+		table.insert(out, code)
 	else
-		table.insert(out, table.concat({
-			"context.packages[ " ..  context.currentId .. " ] = function ()\n",
+		local code = table.concat({
+			"context.modules[", id, "] = function()",
 			object.Source,
-			"\nend\n",
-			"setfenv(context.packages[ " .. context.currentId .. " ], ",
-			"createModuleEnvironment( ",
-			context.currentId .. ", " .. tostring(context.options.no_circular_deps),
-			" ))\n\n",
-		}, ""))
+			"end",
+			"setfenv(context.modules[", id, "], createModuleEnvironment(", id, ", ", noCircularDeps, "))\n\n",
+		}, "\n")
+		table.insert(out, code)
 	end
 end
 
@@ -318,11 +321,11 @@ end
 local function writeModules(tree, out)
 	local initialId = context.currentId + 1
 	if tree:IsA("LocalScript") or tree:IsA("ModuleScript") then
-		writeModule(tree, "rbxm-suite." .. tree:GetFullName(), out)
+		writeModule(tree, PROGRAM_NAME .. "." .. tree:GetFullName(), out)
 	end
 	for _, object in ipairs(tree:GetDescendants()) do
 		if object:IsA("LocalScript") or object:IsA("ModuleScript") then
-			writeModule(object, "rbxm-suite." .. object:GetFullName(), out)
+			writeModule(object, PROGRAM_NAME .. "." .. object:GetFullName(), out)
 		end
 	end
 	return initialId
@@ -337,7 +340,7 @@ local function initModules(out)
 	}, {
 		__index = getfenv(0)
 	})
-	local init = assert(loadstring(table.concat(out, ""), "rbxm-suite"))
+	local init = assert(loadstring(table.concat(out, ""), "@" .. PROGRAM_NAME))
 	setfenv(init, environment)()
 end
 
@@ -373,24 +376,23 @@ end
 ---@return Instance
 function rbxmSuite.launch(location, options)
 	options = options or {}
+	context.options = options
 	do
 		-- Defaults
 		if options.debug == nil then options.debug = false end
-		if options.run_scripts == nil then options.run_scripts = true end
+		if options.runscripts == nil then options.runscripts = true end
 		if options.verbose == nil then options.verbose = false end
-		if options.no_circular_deps == nil then options.no_circular_deps = true end
+		if options.nocirculardeps == nil then options.nocirculardeps = true end
 	end
 
-	context.options = options
-	if options.verbose then
-		log("Launching file '" .. location .. "'")
-		for k, v in pairs(options) do
-			local tabs = string.rep(" ", 11 - #k)
-			log("  \"" .. k .. "\"", tabs, "=", v)
-		end
+	log("Launching file '" .. location .. "'")
+	for k, v in pairs(options) do
+		local tabs = string.rep(" ", 11 - #k)
+		log("  \"" .. k .. "\"", tabs, "=", v)
 	end
 
 	local clock = os.clock()
+
 	local objects = game:GetObjects(fileAsContent(location))
 	assert(type(objects) == "table", objects or "Failed to load model at " .. location)
 	assert(typeof(objects[1]) == "Instance", "Model must contain at least one instance")
@@ -399,10 +401,11 @@ function rbxmSuite.launch(location, options)
 	local moduleOutput = {}
 	local initialId = writeModules(objects[1], moduleOutput)
 	initModules(moduleOutput)
+
 	log("Compiled", context.currentId - initialId + 1, "modules")
 
 	-- Run every LocalScript object
-	if options.run_scripts then
+	if options.runscripts then
 		log("Scanning objects for LocalScripts")
 
 		for i = initialId, context.currentId do
@@ -418,6 +421,10 @@ function rbxmSuite.launch(location, options)
 
 	context.options = nil
 	return table.unpack(objects)
+end
+
+if isfolder(CACHE_FOLDER_NAME) then
+	github.init()
 end
 
 return rbxmSuite

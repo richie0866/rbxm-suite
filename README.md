@@ -107,9 +107,9 @@ The unminified source is available in the repository.
 ```lua
 local project = rbxmSuite.launch("path/to/Project.rbxm", {
 	debug = false,
-	run_scripts = true,
+	runscripts = true,
 	verbose = false,
-	no_circular_deps = true,
+	nocirculardeps = true,
 })
 ```
 
@@ -126,7 +126,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 <br/>
 
-> ⚙️ **`run_scripts`**
+> ⚙️ **`runscripts`**
 > 
 > Run every enabled LocalScript in your project on new threads. Defaults to `true`.
 
@@ -138,7 +138,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 <br/>
 
-> ⚙️ **`no_circular_deps`**
+> ⚙️ **`nocirculardeps`**
 > 
 > Enable circular dependency prevention. Defaults to `true`.
 > 
