@@ -18,18 +18,17 @@ jobs:
         with:
           node-version: "14"
 
-      - name: Download release artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          workflow: ci.yml
-          name: rbxm-suite
+      - name: Install dependencies
+        run: npm install
+
+      - name: Minify rbxm-suite
+        run: npm run min
 
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
           prerelease: false
-          files: rbxmSuite.lua
+          files: rbxm-suite.lua
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
