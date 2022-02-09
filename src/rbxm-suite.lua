@@ -3,9 +3,10 @@
 local rbxmSuite = {}
 
 ---@class Options
----@field debug        boolean  @Enable debug mode, default is false
----@field run_scripts  boolean  @Run all enabled LocalScripts, default is true
----@field verbose      boolean  @Enable verbose mode, default is false
+---@field debug            boolean Enable debug mode, default is false
+---@field run_scripts      boolean Run all enabled LocalScripts, default is true
+---@field verbose          boolean Enable verbose mode, default is false
+---@field no_circular_deps boolean Enable circular dependency prevention, default is true
 
 ---Returns a local asset id for the given file path.
 ---@type fun(path: string): string
@@ -245,9 +246,9 @@ end
 ---Returns or loads the given module. If the module is not created by rbxmSuite,
 ---it will return the result of `require(module)`. Used in `createModuleEnvironment`.
 ---@param module ModuleScript
----@param this LocalScript | ModuleScript
+---@param this? LocalScript | ModuleScript
 ---@return any
-local function loadModuleSafe(module, this)
+local function requireModuleInternal(module, this)
 	if context.instanceToId[module] and module:IsA("ModuleScript") then
 		return loadModule(module, this)
 	else
@@ -257,12 +258,17 @@ end
 
 ---Creates a mock global environment for the given script.
 ---@param id number
+---@param noCircularDeps boolean
 ---@return table<string, any>
-local function createModuleEnvironment(id)
+local function createModuleEnvironment(id, noCircularDeps)
 	return setmetatable({
 		script = context.idToInstance[id],
 		require = function (module)
-			return loadModuleSafe(module, context.idToInstance[id])
+			if noCircularDeps then
+				return requireModuleInternal(module, context.idToInstance[id])
+			else
+				return requireModuleInternal(module)
+			end
 		end,
 	}, {
 		__index = getfenv(0),
@@ -284,9 +290,11 @@ local function writeModule(object, path, out)
 			"context.packages[ " ..  context.currentId .. " ] = function()\n",
 			"local fn = assert(loadstring(",
 			"context.idToInstance[ " .. context.currentId .. " ].Source, ",
-			"'@'..", string.format("%q", path),
+			"'@'.." .. string.format("%q", path),
 			"))\n",
-			"setfenv(fn, createModuleEnvironment( " .. context.currentId .. " ))\n",
+			"setfenv(fn, createModuleEnvironment( ",
+			context.currentId .. ", " .. tostring(context.options.no_circular_deps),
+			" ))\n",
 			"return fn()\n",
 			"end\n\n",
 		}, ""))
@@ -296,7 +304,9 @@ local function writeModule(object, path, out)
 			object.Source,
 			"\nend\n",
 			"setfenv(context.packages[ " .. context.currentId .. " ], ",
-			"createModuleEnvironment( " .. context.currentId .. " ))\n\n",
+			"createModuleEnvironment( ",
+			context.currentId .. ", " .. tostring(context.options.no_circular_deps),
+			" ))\n\n",
 		}, ""))
 	end
 end
@@ -368,6 +378,7 @@ function rbxmSuite.launch(location, options)
 		if options.debug == nil then options.debug = false end
 		if options.run_scripts == nil then options.run_scripts = true end
 		if options.verbose == nil then options.verbose = false end
+		if options.no_circular_deps == nil then options.no_circular_deps = true end
 	end
 
 	context.options = options

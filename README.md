@@ -109,6 +109,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 	debug = false,
 	run_scripts = true,
 	verbose = false,
+	no_circular_deps = true,
 })
 ```
 
@@ -137,6 +138,14 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 <br/>
 
+> ⚙️ **`no_circular_deps`**
+> 
+> Enable circular dependency prevention. Defaults to `true`.
+> 
+> In rare cases, some workflows need this set to `false`.
+
+<br/>
+
 </details>
 
 ---
@@ -144,7 +153,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 <details>
 <summary>
-🏛️ <strong>Require a specific module</strong>
+🔭 <strong>Require a specific module</strong>
 </summary>
 
 <br/>
@@ -169,7 +178,7 @@ MyModule.doSomething()
 
 <details>
 <summary>
-🔭 <strong>Download a project from GitHub</strong>
+🐙 <strong>Download a project from GitHub</strong>
 </summary>
 
 <br/>
