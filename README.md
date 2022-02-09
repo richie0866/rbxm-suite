@@ -128,7 +128,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 > ⚙️ **`run_scripts`**
 > 
-> Run every enabled LocalScript in your project on new threads.
+> Run every enabled LocalScript in your project on new threads. Defaults to `true`.
 
 <br/>
 
