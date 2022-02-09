@@ -1,28 +1,10 @@
 # Next version
 
-## New Features
-
-⭐ Summarize new features here with references to issues
-
-  - item
-
-## Bug Fixes
-
-⭐ Summarize bug fixes here with references to issues
-
-  - item
-
-## Documentation
-
-⭐ Summarize doc changes here with references to issues
-
-  - item
+# v2.0.1
 
 ## Development
 
-⭐ Summarize development/testing changes here with references to issues
-
-  - item
+  - Minor refactor 4a4f0fe14c6ebd4a7b5626b940149acfcf07b8a5 @richie0866
 
 # v2.0.0
 
