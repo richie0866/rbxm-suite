@@ -6,7 +6,7 @@
 	<br>
 </hi>
 
-<h4 align="center">A Roblox rbxm(x) model runtime built for exploiting</h4>
+<h4 align="center">Designed for exploiting with a Rojo-based workflow</h4>
 
 <p align="center">
 	<a href="https://github.com/richie0866/rbxm-suite/actions/workflows/release.yml">
