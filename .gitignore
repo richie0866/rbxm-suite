@@ -1,6 +1,2 @@
-/node_modules
-/out
-/include
-rbxmSuite.lua
-*.tsbuildinfo
 *.rbxm
+/rbxm-suite.lua

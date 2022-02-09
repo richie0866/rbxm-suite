@@ -1,37 +1,16 @@
 {
-  "name": "rbxm-suite",
-  "version": "1.0.0",
-  "description": "Tools for loading exploit projects from Roblox model files",
-  "main": "index.js",
-  "scripts": {
-    "build": "bash ci/build/build-release.sh",
-    "build:min": "bash ci/build/build-minify.sh",
-    "build:dev": "bash ci/build/build-dev.sh",
-    "compile": "npx rbxtsc --verbose --type=model",
-    "rojo": "rojo build -o rbxmSuite.rbxm",
-    "remodel": "remodel run ci/build/build-to-script.lua rbxmSuite.rbxm",
-    "watch": "rbxtsc -w",
-    "lint": "eslint src/"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@rbxts/compiler-types": "^1.2.3-types.0",
-    "@rbxts/exploit-types": "github:richie0866/exploit-types",
-    "@rbxts/object-utils": "^1.0.4",
-    "@rbxts/services": "^1.1.5",
-    "@rbxts/signal": "^1.0.3",
-    "@rbxts/types": "^1.0.504",
-    "@typescript-eslint/eslint-plugin": "^4.28.3",
-    "@typescript-eslint/parser": "^4.28.3",
-    "eslint": "^7.31.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^3.4.0",
-    "eslint-plugin-roblox-ts": "0.0.30",
-    "luamin": "^1.0.4",
-    "prettier": "^2.3.2",
-    "typescript": "^4.3.5"
-  },
-  "dependencies": {}
+	"name": "rbxm-suite",
+	"version": "1.0.0",
+	"description": "Launch Roblox model files in an exploit",
+	"main": "src/rbxm-suite.lua",
+	"scripts": {
+		"min": "bash ci/min.sh"
+	},
+	"keywords": [],
+	"author": "0866",
+	"license": "MIT",
+	"devDependencies": {
+		"luamin": "^1.0.4"
+	},
+	"dependencies": {}
 }

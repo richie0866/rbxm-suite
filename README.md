@@ -2,29 +2,35 @@
 	<br>
 	<img src="logo.png" alt="rbxm">
 	<br>
-	rbxmSuite
+	rbxm-suite
 	<br>
 </hi>
 
-<h4 align="center">A Roblox rbxm(x) file runtime built for exploiting</h4>
+<h4 align="center">A Roblox rbxm(x) model runtime built for exploiting</h4>
 
 <p align="center">
 	<a href="https://github.com/richie0866/rbxm-suite/actions/workflows/release.yml">
 		<img src="https://github.com/richie0866/rbxm-suite/actions/workflows/release.yml/badge.svg" alt="GitHub Actions Release Status">
-	</a>
-	<a href="https://github.com/richie0866/rbxm-suite/actions/workflows/ci.yml">
-		<img src="https://github.com/richie0866/rbxm-suite/actions/workflows/ci.yml/badge.svg" alt="GitHub Actions CI Status">
 	</a>
 	<a href="https://github.com/richie0866/rbxm-suite/releases/latest">
 		<img src="https://img.shields.io/github/v/release/richie0866/rbxm-suite?include_prereleases" alt="Latest Release">
 	</a>
 </span>
 
+## ❓ What's rbxm-suite?
+
+`rbxm-suite` is the spiritual successor to Rostruct, designed for exploiting with a Rojo-based workflow.
+
+With Rojo, you can store your modules, assets, and UI on the filesystem. Use Rojo to build your project to a rbxm file, and rbxm-suite can launch it in your exploit.
+
+<br/>
+
+
 ## ⚡ Features
 
-🔌 Asset downloader - Retrieve and cache model files from GitHub Releases
+🔌 Asset downloader - Download model assets from GitHub Releases
 
-🌿 Roblox-like script runtime - Special `script` and `require` variables
+🚀 Faster launch times - Outspeed Rostruct by bundling on execution
 
 🧬 Use modules across projects
 
@@ -35,28 +41,28 @@
 
 ## 🌻 Motivation
 
-While [Rostruct](https://github.com/richie0866/Rostruct) can load simple stand-alone projects, it **falls short with when compared to Rojo**.
+[Rostruct](https://github.com/richie0866/Rostruct) is designed to mimic [Rojo](https://rojo.space) on execution, but it **isn't fully fleshed out** like Rojo is.
 
-Rostruct will **always rebuild your project at runtime**, when it should be handled on production. Its build process also tries to match [Rojo](https://rojo.space)'s, but it lacks key features, like `project.json` files. Using [Rojo](https://rojo.space) to build your project instead is a **much safer solution**.
+I designed rbxm-suite as a **straightforward** alternative. Instead of replacing Rojo, it aims to be **paired with Rojo** in your workflow. Build your project with Rojo, and leave the execution to rbxm-suite.
 
-By moving the build process upstream with Rojo, you can take full advantage of a **true Rojo workflow**.
+By moving the build process upstream, you can take advantage of a **true Rojo workflow**.
 
 <br/>
 
 
 ## 🔌 Installation
 
-You can load rbxmSuite through a GitHub Release:
+You can load rbxm-suite through a GitHub Release:
 
 ``` lua
 local rbxmSuite = loadstring(
-	game:HttpGetAsync("https://github.com/richie0866/rbxm-suite/releases/download/TAG_NAME/rbxmSuite.lua")
+	game:HttpGetAsync("https://github.com/richie0866/rbxm-suite/releases/download/v2.x.x/rbxm-suite.lua")
 )()
 
--- Use rbxmSuite
+-- Use rbxm-suite
 ```
 
-Or, you can download `rbxmSuite.lua` and modify it yourself:
+Or, you can download `rbxm-suite.lua` from a release and modify it yourself:
 
 ``` lua
 local rbxmSuite = (function()
@@ -65,17 +71,10 @@ local rbxmSuite = (function()
 
 )()
 
--- Use rbxmSuite
+-- Use rbxm-suite
 ```
 
-<br/>
-
-
-## ❓ What's rbxmSuite?
-
-`rbxmSuite` is the spiritual successor to Rostruct, designed for **rbxm(x) file runtime**.
-
-No need to build several files with a mock Rojo - **Use the real thing, and plug in the model file, that's it!**
+The unminified source is available in the repository.
 
 <br/>
 
@@ -86,7 +85,7 @@ No need to build several files with a mock Rojo - **Use the real thing, and plug
 * Build your Roblox projects with [Rojo](https://rojo.space).
 
 ### ⚡ TypeScript
-* Write and compile TypeScript code with [roblox-ts](https://roblox-ts.com) (must be the `model` type!)
+* Write and compile TypeScript code with [roblox-ts](https://roblox-ts.com) (should be the `model` type!)
 
 <br/>
 
@@ -95,24 +94,81 @@ No need to build several files with a mock Rojo - **Use the real thing, and plug
 
 <details>
 <summary>
-👩🏾‍💻 <strong>Run a project</strong>
+🚀 <strong>Launch a project</strong>
+</summary>
+
+> ``` ts
+> function rbxmSuite.launch(path: string, options: Options): Instance
+> ```
+> 
+> Loads a rbxm(x) file into the game and loads all scripts.
+>
+> By default, it will run all enabled LocalScript objects.
+```lua
+local project = rbxmSuite.launch("path/to/Project.rbxm", {
+	debug = false,
+	run_scripts = true,
+	verbose = false,
+	no_circular_deps = true,
+})
+```
+
+<br/>
+
+> ⚙️ **`debug`**
+> 
+> Enable debug mode. Defaults to `false`.
+> 
+> When `true`, error traceback is preserved and scripts are lazy-loaded with multiple `loadstring` calls.
+> When `false`, every script is compiled at the same time with one `loadstring` call. Typically faster when `false`.
+> 
+> It should be left `false` in production, and set to `true` during development.
+
+<br/>
+
+> ⚙️ **`run_scripts`**
+> 
+> Run every enabled LocalScript in your project on new threads. Defaults to `true`.
+
+<br/>
+
+> ⚙️ **`verbose`**
+> 
+> Enable verbose logging. Defaults to `false`.
+
+<br/>
+
+> ⚙️ **`no_circular_deps`**
+> 
+> Enable circular dependency prevention. Defaults to `true`.
+> 
+> In rare cases, some workflows need this set to `false`.
+
+<br/>
+
+</details>
+
+---
+
+
+<details>
+<summary>
+🔭 <strong>Require a specific module</strong>
 </summary>
 
 <br/>
 
 > ``` ts
-> function project:start(): Promise<LocalScript[]>
+> function rbxmSuite.require(module: LocalScript | ModuleScript): any
 > ```
->
-> Executes every script in the model, and returns a Promise that resolves with every script that ran.
->
-> The Promise only resolves **after** each script finishes running on the **main thread** (max 10-sec timeout).
 > 
-> If **one script** throws an error on the **main thread**, the entire Promise will cancel.
+> Requires the module, and returns what the module returned. `module` must be a LocalScript or ModuleScript created by rbxmSuite.
+> 
+> Note that **any script** in the project can be required!
 ```lua
-local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-
-project:start()
+local myModule = rbxmSuite.launch("path/to/MyModule.rbxm")
+local MyModule = rbxmSuite.require(myModule)
+MyModule.doSomething()
 ```
 
 </details>
@@ -122,101 +178,46 @@ project:start()
 
 <details>
 <summary>
-👩🏾‍💻 <strong>Require a specific module</strong>
+🐙 <strong>Download a project from GitHub</strong>
 </summary>
 
 <br/>
 
 > ``` ts
-> function project:require(module: ModuleScript): Promise<unknown>
+> function rbxmSuite.download(repository: string, asset: string): string
 > ```
 > 
-> Requires the module, and returns a Promise that resolves with what the module returned.
+> Downloads a rbxm(x) asset from a GitHub Release, and returns a path to the asset.
 > 
-> `module` must be a ModuleScript created by the Project!
-> 
+> The repository format is `user/repo@tag_name`.
 ```lua
-local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-local myModule = project.instance.Modules.MyModule
-
-project:require(myModule)
-	:andThen(function(MyModule)
-		-- Use module
-	end)
+local path = rbxmSuite.download("Roblox/roact@v1.4.0", "Roact.rbxm")
+local model = rbxmSuite.launch(path)
+local Roact = rbxmSuite.require(model)
+Roact.createElement()
 ```
 
 <br/>
 
-> Wait for the module to require with `Promise.expect`:
-> 
+> Set `tag_name` to `latest` to download and cache the latest version. Version checking and updating is performed in the background where possible.
 ```lua
-local project = rbxmSuite.Project.new("path/to/Project.rbxm")
-local myModule = project.instance.Modules.MyModule
-
-local MyModule = project:require(myModule):expect()
-```
-
-<br/>
-
-> Note that the root `instance` can also be a module, if you'd like to distribute a library!
-
-</details>
-
----
-
-
-<details>
-<summary>
-👩🏾‍💻 <strong>Retrieve a project from GitHub</strong>
-</summary>
-
-<br/>
-
-> Release format: `"owner/repo@tag_name#flags"`
-
-<br/>
-
-> 🔖 **`@tag_name`**
-> 
-> Downloads the release asset for this Git tag **once**.
-> 
-> This means if the asset has been downloaded before, the Promise resolves immediately.
-```lua
-rbxmSuite.Project.fromGitHub("Roblox/roact@v1.4.0", "Roact.rbxm"):expect()
-```
-
-<br/>
-
-> 🔖 **`@latest`**
-> 
-> Automatically downloads and updates the asset to the latest version.
-> 
-> If `@latest` is set without the `deferred` flag, it will **always** yield to get the latest version!
-```lua
-rbxmSuite.Project.fromGitHub("Roblox/roact@latest", "Roact.rbxm"):expect()
-```
-
-<br/>
-
-> 🚩 **`deferred`**
-> 
-> Processes like version-checking and downloading will happen in the background, unless this is a first-time download.
-> 
-> This means if the asset has been downloaded before, the Promise resolves immediately.
-> 
-> The `deferred` flag can only be used with the `@latest` tag!
-```lua
-rbxmSuite.Project.fromGitHub("Roblox/roact@latest#deferred", "Roact.rbxm"):expect()
+local path = rbxmSuite.download("Roblox/roact@latest", "Roact.rbxm")
 ```
 
 </details>
 <br/>
 
 
-## Limitations
+## Notes
 
-### ☢️ Large file size
+### 📌 In production, don't include unused modules.
 
-Since this module is written in TypeScript, it depends on some roblox-ts packages and modules.
+When debug mode is `false`, modules that don't get required will still be bundled into one script.
 
-The project's minified Luau output is ~40kb. As a result, it is larger than a standard Luau implementation.
+If you have a lot of unused code, execution speed will be inconsistent between exploits. Be careful!
+
+### 📌 GitHub is your friend.
+
+Upload your project to GitHub, and create releases with an rbxm(x) file included as a binary file. A template project is coming soon!
+
+You can distribute your project publicly by using rbxm-suite to download and run the latest release.
