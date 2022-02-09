@@ -24,6 +24,21 @@
 
   - item
 
+# v2.0.0
+
+## Documentation
+
+⭐ Use EmmyLua annotations
+
+  - Avoid Luau type-related errors in exploits and the lua minifier
+
+## Development
+
+⭐ Full Luau rewrite to improve performance and reduce file size
+
+  - Rewrite in Luau 9bc10fe177c91cb5c9dba954aac4f6bb69875de4 @richie0866
+  - Add `no_circular_deps` option 2042c0ca962b0301c12c2696e3281c3dcbe93ba6 @richie0866
+
 # v1.0.3
 
 ## Bug Fixes
