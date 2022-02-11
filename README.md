@@ -21,7 +21,7 @@
 
 `rbxm-suite` is the spiritual successor to Rostruct, designed for exploiting with a Rojo-based workflow.
 
-With Rojo, you can store your modules, assets, and UI on the filesystem. Use Rojo to build your project to a rbxm file, and rbxm-suite can launch it in your exploit.
+Store your modules, assets, and UI on the filesystem. Use Rojo to build your project to a rbxm file, and rbxm-suite can launch it in your exploit.
 
 <br/>
 
