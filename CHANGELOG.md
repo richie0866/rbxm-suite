@@ -1,5 +1,15 @@
 # Next version
 
+## Bug Fixes
+
+⭐ Fix false module recursion error when using Roblox-TS
+
+  - Do not check loaded modules for recursion 2f1fd6f43e52b2437c6e487d53e578fa415f9e2b @richie0866
+
+## Documentation
+
+  - Fix mistakes in docs (#5)
+
 # v2.0.1
 
 ## Development
