@@ -196,32 +196,36 @@ local currentlyLoading = {}
 ---Checks if requiring this module will result in a circular dependency.
 ---https://github.com/roblox-ts/roblox-ts/blob/master/lib/RuntimeLib.lua#L74
 ---@param module LocalScript | ModuleScript
----@param this? LocalScript | ModuleScript
-local function validateCurrentlyLoading(module, this)
-	currentlyLoading[this] = module
+---@param caller? LocalScript | ModuleScript
+---@return function | nil
+local function validateCurrentlyLoading(module, caller)
+	currentlyLoading[caller] = module
 
 	local currentModule = module
 	local depth = 0
 
-	while currentModule do
-		depth = depth + 1
-		currentModule = currentlyLoading[currentModule]
+	-- If the module is loaded, requiring it will not cause a circular dependency.
+	if not context.moduleToData[module] then
+		while currentModule do
+			depth = depth + 1
+			currentModule = currentlyLoading[currentModule]
 
-		if currentModule == module then
-			local str = currentModule.Name -- Get the string traceback
+			if currentModule == module then
+				local str = currentModule.Name -- Get the string traceback
 
-			for _ = 1, depth do
-				currentModule = currentlyLoading[currentModule]
-				str = str .. "  ⇒ " .. currentModule.Name
+				for _ = 1, depth do
+					currentModule = currentlyLoading[currentModule]
+					str = str .. "  ⇒ " .. currentModule.Name
+				end
+
+				error("Failed to load '" .. module.Name .. "'; Detected a circular dependency chain: " .. str, 2)
 			end
-
-			error("Failed to load '" .. module.Name .. "'; Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	return function ()
-		if currentlyLoading[this] == module then -- Thread-safe cleanup!
-			currentlyLoading[this] = nil
+		if currentlyLoading[caller] == module then -- Thread-safe cleanup!
+			currentlyLoading[caller] = nil
 		end
 	end
 end
