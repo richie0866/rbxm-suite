@@ -1,20 +1,12 @@
 ---**rbxm-suite** is a tool designed for exploiting with a Rojo-based workflow.
----Loads a given model into the game and runs every script.
+---Run or require from model files locally, or download them from GitHub.
 local rbxmSuite = {}
 
 ---@class Options
----@field debug          boolean Enable debug mode, default is false
----@field runscripts     boolean Run all enabled LocalScripts, default is true
----@field verbose        boolean Enable verbose mode, default is false
----@field nocirculardeps boolean Enable circular dependency prevention, default is true
-
----@class Context
----@field options      Options | nil
----@field currentId    number
----@field idToInstance table<number, Instance>
----@field instanceToId table<Instance, number>
----@field moduleToData table<string, table>
----@field modules      table<number, function>
+---@field debug          boolean Enable debug mode. Defaults to false.
+---@field runscripts     boolean Run all enabled LocalScripts. Defaults to true.
+---@field verbose        boolean Enable verbose mode. Defaults to false.
+---@field nocirculardeps boolean Enable circular dependency prevention. Defaults to true.
 
 ---The name of the script displayed in logs and error traceback.
 local PROGRAM_NAME = "rbxm-suite"
@@ -29,9 +21,15 @@ local fileAsContent = getsynasset or getcustomasset or error("File -> Content AP
 ---@type fun(requestOptions: table): table
 local requestAsync = syn and syn.request or request or error("HTTP request API not found")
 
----Shares information between sessions.
----@type Context
+---@class Context
+---@field options      Options | nil
+---@field currentId    number
+---@field idToInstance table<number, Instance>
+---@field instanceToId table<Instance, number>
+---@field moduleToData table<string, table>
+---@field modules      table<number, function>
 local context = getgenv()[CONTEXT_KEY]
+
 if not getgenv()[CONTEXT_KEY] then
 	context = {
 		options = nil,
@@ -44,7 +42,7 @@ if not getgenv()[CONTEXT_KEY] then
 	getgenv()[CONTEXT_KEY] = context
 end
 
----Logs a message with rconsole. Only works in verbose mode.
+---Logs a message to the console in verbose mode.
 ---@vararg string
 local function log(...)
 	if context.options.verbose then
@@ -81,8 +79,8 @@ do
 
 	---Returns the installed version of the given id.
 	---@param id string
-	---@return string?
-	function github.version(id)
+	---@return string? version
+	function github.currentVersion(id)
 		local latest = readfile(CACHE_FOLDER_NAME .. "\\latest.json")
 		return HttpService:JSONDecode(latest)[id]
 	end
@@ -92,32 +90,32 @@ do
 	---@param repo string
 	---@param tag string
 	---@param asset string
-	---@return string
+	---@return string id
 	function github.id(user, repo, tag, asset)
 		return user .. "-" .. repo .. "-" .. tag .. "-" .. asset
 	end
 
 	---Returns the path to the given id.
 	---@param id string
-	---@return string
+	---@return string path
 	function github.path(id)
 		return CACHE_FOLDER_NAME .. "\\models\\" .. id
 	end
 
-	---Returns the URL to download the asset.
+	---Returns a URL to the asset data.
 	---@param user string
 	---@param repo string
 	---@param tag string
 	---@param asset string
-	---@return string
+	---@return string url
 	function github.url(user, repo, tag, asset)
 		return "https://github.com/" .. user .. "/" .. repo .. "/releases/download/" .. tag .. "/" .. asset
 	end
 
-	---Returns the lastest version of the GitHub repository.
+	---Returns the latest tag of the repository.
 	---@param user string
 	---@param repo string
-	---@return string
+	---@return string tagName
 	function github.latestTag(user, repo)
 		local url = "https://api.github.com/repos/" .. user .. "/" .. repo .. "/releases/latest"
 		local response = requestAsync({
@@ -129,24 +127,22 @@ do
 		return data.tag_name
 	end
 
-	---Updates the cache with the latest version of the given GitHub Release.
-	---Calls `onComplete` when finished.
+	---Updates the cache with the latest version of the GitHub asset.
 	---@param user string
 	---@param repo string
 	---@param asset string
-	---@return string
+	---@return string path
 	function github.downloadLatest(user, repo, asset)
 		local latestTag = github.latestTag(user, repo)
 		local id = github.id(user, repo, "latest", asset)
-		local url = github.url(user, repo, latestTag, asset)
 		local path = github.path(id)
 
-		if isfile(path) and github.version(id) == latestTag then
+		if isfile(path) and github.currentVersion(id) == latestTag then
 			return path
 		end
 	
 		local response = requestAsync({
-			Url = url,
+			Url = github.url(user, repo, latestTag, asset),
 			Method = "GET",
 		})
 		assert(response.Success, "Download failed: " .. response.StatusCode .. " " .. response.StatusMessage)
@@ -159,12 +155,12 @@ do
 		return path
 	end
 
-	---Downloads the given GitHub asset. Calls `onComplete` when finished.
+	---Downloads the GitHub asset.
 	---@param user string
 	---@param repo string
 	---@param tag string
 	---@param asset string
-	---@return string
+	---@return string path
 	function github.download(user, repo, tag, asset)
 		local id = github.id(user, repo, tag, asset)
 		local path = github.path(id)
@@ -177,9 +173,8 @@ do
 		elseif tag == "latest" then
 			return github.downloadLatest(user, repo, asset)
 		else
-			local url = github.url(user, repo, tag, asset)
 			local response = requestAsync({
-				Url = url,
+				Url = github.url(user, repo, tag, asset),
 				Method = "GET",
 			})
 			assert(response.Success, "Download failed: " .. response.StatusCode .. " " .. response.StatusMessage)
@@ -194,11 +189,12 @@ end
 local currentlyLoading = {}
 
 ---Checks if requiring this module will result in a circular dependency.
+---Returns a cleanup function that should be called once the module is loaded.
 ---https://github.com/roblox-ts/roblox-ts/blob/master/lib/RuntimeLib.lua#L74
 ---@param module LocalScript | ModuleScript
 ---@param caller? LocalScript | ModuleScript
----@return function | nil
-local function validateCurrentlyLoading(module, caller)
+---@return function | nil cleanup
+local function validateRequire(module, caller)
 	currentlyLoading[caller] = module
 
 	local currentModule = module
@@ -231,12 +227,12 @@ local function validateCurrentlyLoading(module, caller)
 end
 
 ---Loads the given module if it has not been loaded. Throws an error if a
----circular dependency is found.
+---circular dependency is detected.
 ---@param module LocalScript | ModuleScript
 ---@param this? LocalScript | ModuleScript
 ---@return any
 local function loadModule(module, this)
-	local cleanup = this and validateCurrentlyLoading(module, this)
+	local cleanup = this and validateRequire(module, this)
 
 	if context.moduleToData[module] then
 		if cleanup then
@@ -253,8 +249,7 @@ local function loadModule(module, this)
 	end
 end
 
----Returns or loads the given module. If the module is not created by rbxmSuite,
----it will return the result of `require(module)`. Used in `createModuleEnvironment`.
+---Loads the given module.
 ---@param module ModuleScript
 ---@param this? LocalScript | ModuleScript
 ---@return any
@@ -266,10 +261,10 @@ local function requireModuleInternal(module, this)
 	end
 end
 
----Creates a mock global environment for the given script.
+---Returns a custom global environment.
 ---@param id number
 ---@param noCircularDeps boolean
----@return table<string, any>
+---@return table<string, any> environment
 local function createModuleEnvironment(id, noCircularDeps)
 	return setmetatable({
 		script = context.idToInstance[id],
@@ -286,7 +281,7 @@ local function createModuleEnvironment(id, noCircularDeps)
 	})
 end
 
----Appends code that registers the given module to `out`.
+---Writes code that registers the script.
 ---@param object LocalScript | ModuleScript
 ---@param path string
 ---@param out string[]
@@ -297,37 +292,39 @@ local function writeModule(object, path, out)
 
 	local id = context.currentId
 	local noCircularDeps = tostring(context.options.nocirculardeps)
+	local source = string.format("%q", path)
 
 	if context.options.debug then
 		local code = table.concat({
-			"context.modules[", id, "] = function()",
-			"local fn = assert(loadstring(context.idToInstance[", id, "].Source, '@'..", string.format("%q", path), "))",
-			"setfenv(fn, createModuleEnvironment(", id, ", ", noCircularDeps, "))",
+			"context.modules["..id.."] = function()",
+			"local fn = assert(loadstring(context.idToInstance["..id.."].Source, '@'.."..source.."))",
+			"setfenv(fn, createModuleEnvironment("..id..", "..noCircularDeps.."))",
 			"return fn()",
 			"end\n\n",
 		}, "\n")
 		table.insert(out, code)
 	else
 		local code = table.concat({
-			"context.modules[", id, "] = function()",
+			"context.modules["..id.."] = function()",
 			object.Source,
 			"end",
-			"setfenv(context.modules[", id, "], createModuleEnvironment(", id, ", ", noCircularDeps, "))\n\n",
+			"setfenv(context.modules["..id.."], createModuleEnvironment("..id..", "..noCircularDeps.."))\n\n",
 		}, "\n")
 		table.insert(out, code)
 	end
 end
 
 ---Appends the code of every module in the given object tree to `out`.
----@param tree Instance
+---Returns the id of the first module
+---@param parent Instance
 ---@param out string[]
----@return number
-local function writeModules(tree, out)
+---@return number initialId
+local function writeAllModules(parent, out)
 	local initialId = context.currentId + 1
-	if tree:IsA("LocalScript") or tree:IsA("ModuleScript") then
-		writeModule(tree, PROGRAM_NAME .. "." .. tree:GetFullName(), out)
+	if parent:IsA("LocalScript") or parent:IsA("ModuleScript") then
+		writeModule(parent, PROGRAM_NAME .. "." .. parent:GetFullName(), out)
 	end
-	for _, object in ipairs(tree:GetDescendants()) do
+	for _, object in ipairs(parent:GetDescendants()) do
 		if object:IsA("LocalScript") or object:IsA("ModuleScript") then
 			writeModule(object, PROGRAM_NAME .. "." .. object:GetFullName(), out)
 		end
@@ -335,7 +332,7 @@ local function writeModules(tree, out)
 	return initialId
 end
 
----Initializes every module listed by `writeModule`. Returns the initial id.
+---Runs the code that loads modules into `context.modules`.
 ---@param out string[]
 local function initModules(out)
 	local environment = setmetatable({
@@ -348,17 +345,17 @@ local function initModules(out)
 	setfenv(init, environment)()
 end
 
----Downloads a GitHub Release asset. Calls `onComplete` with the file path.
----@param repo string user/repo@tag or latest
+---Downloads an asset from a GitHub Release. Yields and returns the file path.
+---@param repo string user/repo@tag or @latest
 ---@param asset string File name of the .rbxm(x) asset to download
----@return string
+---@return string path
 function rbxmSuite.download(repository, asset)
 	local user, repo, tag = string.match(repository, "([^/]+)/([^@]+)@?(.*)")
 	assert(user and repo, "Invalid repository: " .. repository)
 	return github.download(user, repo, tag or "latest", asset)
 end
 
----Clears and replaces the downloaded asset cache.
+---Clears the GitHub download cache.
 function rbxmSuite.repair()
 	github.repair()
 end
@@ -374,7 +371,7 @@ function rbxmSuite.require(script)
 end
 
 ---Inserts the model at `location` into the game. Initializes all scripts & modules.
----Returns the first instance created by the model.
+---Returns the instance created by the model.
 ---@param location string
 ---@param options? Options
 ---@return Instance
@@ -403,7 +400,7 @@ function rbxmSuite.launch(location, options)
 
 	-- Register every script in the model
 	local moduleOutput = {}
-	local initialId = writeModules(objects[1], moduleOutput)
+	local initialId = writeAllModules(objects[1], moduleOutput)
 	initModules(moduleOutput)
 
 	log("Compiled", context.currentId - initialId + 1, "modules")
