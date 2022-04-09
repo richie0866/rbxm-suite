@@ -1,4 +1,11 @@
-# Next version
+# v2.0.3
+
+## Bug Fixes
+
+  - Use HttpGetAsync instead of request 5152dc0bacc3705f40dadf06a73fcf97586b3687 @richie0866
+  - Fix issue with running init 5152dc0bacc3705f40dadf06a73fcf97586b3687 @richie0866
+
+# v2.0.2
 
 ## Bug Fixes
 
