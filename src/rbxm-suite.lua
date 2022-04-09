@@ -18,9 +18,6 @@ local CONTEXT_KEY = "__rbxm_suite_context"
 ---@type fun(path: string): string
 local fileAsContent = getsynasset or getcustomasset or error("File -> Content API not found")
 
----@type fun(requestOptions: table): table
-local requestAsync = syn and syn.request or request or error("HTTP request API not found")
-
 ---@class Context
 ---@field options      Options | nil
 ---@field currentId    number
@@ -118,13 +115,11 @@ do
 	---@return string tagName
 	function github.latestTag(user, repo)
 		local url = "https://api.github.com/repos/" .. user .. "/" .. repo .. "/releases/latest"
-		local response = requestAsync({
-			Url = url,
-			Method = "GET",
-		})
-		assert(response.Success, "Version check failed: " .. response.StatusCode .. " " .. response.StatusMessage)
-		local data = HttpService:JSONDecode(response.Body)
-		return data.tag_name
+		local response, code = game:HttpGetAsync(url)
+
+		assert(response, "Version check failed (" .. url .. "): " .. tostring(code))
+
+		return HttpService:JSONDecode(response).tag_name
 	end
 
 	---Updates the cache with the latest version of the GitHub asset.
@@ -141,13 +136,12 @@ do
 			return path
 		end
 	
-		local response = requestAsync({
-			Url = github.url(user, repo, latestTag, asset),
-			Method = "GET",
-		})
-		assert(response.Success, "Download failed: " .. response.StatusCode .. " " .. response.StatusMessage)
+		local url = github.url(user, repo, latestTag, asset)
+		local response, code = game:HttpGetAsync(url)
+		assert(response, "Download failed (" .. url .. "): " .. tostring(code))
 
-		writefile(path, response.Body)
+		writefile(path, response)
+
 		github.updateVersions(function(data)
 			data[id] = latestTag
 		end)
@@ -173,12 +167,12 @@ do
 		elseif tag == "latest" then
 			return github.downloadLatest(user, repo, asset)
 		else
-			local response = requestAsync({
-				Url = github.url(user, repo, tag, asset),
-				Method = "GET",
-			})
-			assert(response.Success, "Download failed: " .. response.StatusCode .. " " .. response.StatusMessage)
-			writefile(path, response.Body)
+			local url = github.url(user, repo, tag, asset)
+			local response, code = game:HttpGetAsync(url)
+
+			assert(response, "Download failed (" .. url .. "): " .. tostring(code))
+			writefile(path, response)
+
 			return path
 		end
 	end
@@ -424,7 +418,7 @@ function rbxmSuite.launch(location, options)
 	return table.unpack(objects)
 end
 
-if isfolder(CACHE_FOLDER_NAME) then
+if not isfolder(CACHE_FOLDER_NAME) then
 	github.init()
 end
 
