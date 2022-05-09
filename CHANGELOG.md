@@ -1,3 +1,9 @@
+# v2.1.0
+
+## New Features
+
+⭐ Add support for `rbxassetid` content ids 540e1c43479f3773fd9fca0e70ce5165845ed94e @8y8x
+
 # v2.0.3
 
 ## Bug Fixes
