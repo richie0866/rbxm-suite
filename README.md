@@ -101,7 +101,7 @@ The unminified source is available in the repository.
 > function rbxmSuite.launch(path: string, options: Options): Instance
 > ```
 > 
-> Loads a rbxm(x) file into the game and loads all scripts.
+> Loads a rbxm(x) file into the game and loads all scripts. `path` may be a file path or a `rbxassetid` path as of v2.1.0.
 >
 > By default, it will run all enabled LocalScript objects.
 ```lua
@@ -218,6 +218,6 @@ If you have a lot of unused code, execution speed will be inconsistent between e
 
 ### 📌 GitHub is your friend.
 
-Upload your project to GitHub, and create releases with an rbxm(x) file included as a binary file. A template project is coming soon!
+Upload your project to GitHub, and create releases with an rbxm(x) file included as a binary file.
 
 You can distribute your project publicly by using rbxm-suite to download and run the latest release.
