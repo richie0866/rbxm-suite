@@ -388,7 +388,12 @@ function rbxmSuite.launch(location, options)
 
 	local clock = os.clock()
 
-	local objects = game:GetObjects(fileAsContent(location))
+	local objects
+	if string.find(location, "^rbxassetid://") then
+		objects = game:GetObjects(location)
+	else
+		objects = game:GetObjects(fileAsContent(location))
+	end
 	assert(type(objects) == "table", objects or "Failed to load model at " .. location)
 	assert(typeof(objects[1]) == "Instance", "Model must contain at least one instance")
 
