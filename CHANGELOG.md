@@ -1,3 +1,10 @@
+# v2.1.1
+
+## Development
+
+  - Minify in JS instead of bash 4040354c79260ed04e91c49f32bcc1144b679446 @richie0866
+  - Use latest asset redirect internally 7fce52ba2f57de5134ab096b19d9f032d41ee7ef @richie0866
+
 # v2.1.0
 
 ## New Features
