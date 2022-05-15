@@ -105,8 +105,17 @@ do
 	---@param tag string
 	---@param asset string
 	---@return string url
-	function github.url(user, repo, tag, asset)
+	function github.assetUrl(user, repo, tag, asset)
 		return "https://github.com/" .. user .. "/" .. repo .. "/releases/download/" .. tag .. "/" .. asset
+	end
+
+	---Returns a URL to the latest version of the asset data.
+	---@param user string
+	---@param repo string
+	---@param asset string
+	---@return string url
+	function github.latestAssetUrl(user, repo, asset)
+		return "https://github.com/" .. user .. "/" .. repo .. "/releases/latest/download/" .. asset
 	end
 
 	---Returns the latest tag of the repository.
@@ -136,7 +145,7 @@ do
 			return path
 		end
 	
-		local url = github.url(user, repo, latestTag, asset)
+		local url = github.latestAssetUrl(user, repo, asset)
 		local response, code = game:HttpGetAsync(url)
 		assert(response, "Download failed (" .. url .. "): " .. tostring(code))
 
@@ -167,7 +176,7 @@ do
 		elseif tag == "latest" then
 			return github.downloadLatest(user, repo, asset)
 		else
-			local url = github.url(user, repo, tag, asset)
+			local url = github.assetUrl(user, repo, tag, asset)
 			local response, code = game:HttpGetAsync(url)
 
 			assert(response, "Download failed (" .. url .. "): " .. tostring(code))
