@@ -4,13 +4,12 @@
 	"description": "Launch Roblox model files in an exploit",
 	"main": "src/rbxm-suite.lua",
 	"scripts": {
-		"min": "bash ci/min.sh"
+		"min": "node ci/min.js"
 	},
 	"keywords": [],
 	"author": "0866",
 	"license": "MIT",
 	"devDependencies": {
 		"luamin": "^1.0.4"
-	},
-	"dependencies": {}
+	}
 }
