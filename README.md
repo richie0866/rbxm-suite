@@ -41,9 +41,9 @@ Store your modules, assets, and UI on the filesystem. Use Rojo to build your pro
 
 ## 🌻 Motivation
 
-[Rostruct](https://github.com/richie0866/Rostruct) is designed to mimic [Rojo](https://rojo.space) on execution, but it **isn't fully fleshed out** like Rojo is.
+[Rostruct](https://github.com/richie0866/Rostruct) is designed to mimic [Rojo](https://rojo.space) on execution, but it isn't complete.
 
-I designed rbxm-suite as a **straightforward** alternative. Instead of replacing Rojo, it aims to be **paired with Rojo** in your workflow. Build your project with Rojo, and leave the execution to rbxm-suite.
+I designed rbxm-suite as a **smarter alternative**. Instead of mimicking Rojo, it handles what Rojo can already generate. Build your project with Rojo, and leave the execution to rbxm-suite.
 
 By moving the build process upstream, you can take advantage of a **true Rojo workflow**.
 
@@ -55,26 +55,20 @@ By moving the build process upstream, you can take advantage of a **true Rojo wo
 You can load rbxm-suite through a GitHub Release:
 
 ``` lua
-local rbxmSuite = loadstring(
-	game:HttpGetAsync("https://github.com/richie0866/rbxm-suite/releases/download/v2.x.x/rbxm-suite.lua")
-)()
-
--- Use rbxm-suite
+local rbxmSuite = loadstring(game:HttpGetAsync("https://github.com/richie0866/rbxm-suite/releases/latest/download/rbxm-suite.lua"))()
 ```
 
 Or, you can download `rbxm-suite.lua` from a release and modify it yourself:
 
 ``` lua
 local rbxmSuite = (function()
-
-	-- Minified code
-
+	-- This part will be automatically generated
 )()
 
 -- Use rbxm-suite
 ```
 
-The unminified source is available in the repository.
+The unminified source is available in the `src` folder.
 
 <br/>
 
