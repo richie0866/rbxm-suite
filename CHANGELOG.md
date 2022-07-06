@@ -2,8 +2,9 @@
 
 ## Bug Fixes
 
-- Fixed a bug in the `nocache` option.
-- Top-level LocalScripts are now executed when `runscripts` is true.
+- Fixed a bug in the `nocache` option. 26bcb292bd452bee98f5dd077a0f45a741b5aeaa 72c36e80e5d2e47d3b75cef01f2215fef4cba8b1 @richie0866
+- Fixed recursion issue in custom `require` implementation. 72c36e80e5d2e47d3b75cef01f2215fef4cba8b1 @richie0866
+- Top-level LocalScripts are now executed when `runscripts` is true. 26bcb292bd452bee98f5dd077a0f45a741b5aeaa @richie0866
 
 # v2.2.1
 
