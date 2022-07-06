@@ -1,3 +1,20 @@
+# v2.2.0
+
+## New Features
+
+📂 Add `nocache` option for Roblox library assets
+
+  - Add support for nocache option 00f18b12fe3990d457563fe85b0260ec79e48c73 @EpixScripts
+
+🧬 Add `deferred` option for running scripts when `runscripts` is true
+
+## Development
+
+🔥 Allow Luau optimizations that were disabled in previous versions
+
+  - Remove 'setfenv' by localizing globals, refactor code deed3cdbb55bb5c9871254d896c720b23040f485 @richie0866
+  - Use new selene executor environment @EpixScripts
+
 # v2.1.1
 
 ## Development
