@@ -44,9 +44,7 @@ end
 local function httpGet(url)
 	local response, code = game:HttpGetAsync(url)
 
-	assert(response, "Error " .. code .. ": Failed to GET from " .. url)
-
-	return response
+	return assert(response, "Error " .. tostring(code) .. ": Failed to GET from " .. url)
 end
 
 local function log(message, isVerbose)
@@ -216,7 +214,7 @@ end
 local function registerModule(object, allowRecursion)
 	local id = HttpService:GenerateGUID()
 
-	local function require(target)
+	local function requireImpl(target)
 		if typeof(target) == "Instance" and modules[target] then
 			return loadModule(target, object, allowRecursion)
 		else
@@ -233,7 +231,7 @@ local function registerModule(object, allowRecursion)
 	idToScript[id] = object
 	scriptToId[object] = id
 
-	globalMap[id] = {object, require}
+	globalMap[id] = {object, requireImpl}
 
 	return id
 end
@@ -292,11 +290,18 @@ local function getObjectsNoCache(url, isVerbose)
 	-- Create a temporary file to store the asset.
 	writefile(PROGRAM_TEMP, rbxmData)
 
-	local objects = game:GetObjects(pathToUrl(PROGRAM_TEMP))
+	local success, result = pcall(function()
+		return game:GetObjects(pathToUrl(PROGRAM_TEMP))
+	end)
 
 	delfile(PROGRAM_TEMP)
 
-	return objects
+	if not success then
+		log("⚠️ Model data for asset " .. assetId .. " failed to load! " .. tostring(result), isVerbose)
+		return game:GetObjects(url)
+	end
+
+	return result
 end
 
 local function getObjects(url, options)
