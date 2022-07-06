@@ -251,14 +251,14 @@ local function pushModule(object, stream, options)
 	local path = string.format("%q", "@" .. PROGRAM_NAME .. "." .. object:GetFullName())
 
 	-- Localize globals to avoid setfenv() optimization issues.
-	object.Source = "local script, require = unpack(globalMap[" .. id .. "]); " .. object.Source
+	object.Source = "local script, require = unpack((globalMap or ...)[" .. id .. "]); " .. object.Source
 
 	if options.debug then
 		-- Preserve error traceback and lazy-loading.
 		stream.push(
 			"modules[idToScript[" .. id .. "]].fn = function ()\n" ..
 			"local fn, err = loadstring(idToScript[" .. id .. "].Source, " .. path .. ")\n" ..
-			"return assert(fn, err)()\n" ..
+			"return assert(fn, err)(globalMap)\n" ..
 			"end\n"
 		)
 
@@ -421,6 +421,8 @@ end
 local function clearCache()
 	return github.clearCache()
 end
+
+launch("Orca.rbxm", { debug = true })
 
 return {
 	launch = launch,
