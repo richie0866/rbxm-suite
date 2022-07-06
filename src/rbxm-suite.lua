@@ -319,7 +319,7 @@ local function startModelScripts(model, options)
 
 	for _, object in pairs(model:GetDescendants()) do
 		if object:IsA("LocalScript") and not object.Disabled then
-			scriptCount += 1
+			scriptCount = scriptCount + 1
 
 			local index = scriptCount
 
