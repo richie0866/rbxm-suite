@@ -439,15 +439,6 @@ local function clearCache()
 	return github.clearCache()
 end
 
-launch("rbxassetid://10138320931", {
-	runscripts = true,
-	deferred = true,
-	nocache = true,
-	nocirculardeps = true,
-	debug = true,
-	verbose = true,
-})
-
 return {
 	launch = launch,
 	require = require,
