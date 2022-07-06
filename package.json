@@ -1,6 +1,6 @@
 {
 	"name": "rbxm-suite",
-	"version": "2.1.1",
+	"version": "2.2.0",
 	"description": "Launch Roblox model files in an exploit",
 	"main": "src/rbxm-suite.lua",
 	"scripts": {
