@@ -100,13 +100,42 @@ The unminified source is available in the `src` folder.
 > By default, it will run all enabled LocalScript objects.
 ```lua
 local project = rbxmSuite.launch("path/to/Project.rbxm", {
-	debug = false,
 	runscripts = true,
-	verbose = false,
+	deferred = true,
+	nocache = false,
 	nocirculardeps = true,
-	nocache = true,
+	debug = false,
+	verbose = false,
 })
 ```
+
+<br/>
+
+> ⚙️ **`runscripts`**
+> 
+> Run every enabled LocalScript in your project on new threads. Defaults to `true`.
+
+<br/>
+
+> ⚙️ **`deferred`**
+> 
+> Whether `runscripts` should use task.defer instead of task.spawn. Defaults to `true`.
+
+<br/>
+
+> ⚙️ **`nocache`**
+> 
+> For `rbxassetid` paths, prevent using cached data.
+> 
+> This option manually requests from the web API to grab asset data.
+
+<br/>
+
+> ⚙️ **`nocirculardeps`**
+> 
+> Enable circular dependency prevention. Defaults to `true`.
+> 
+> In rare cases, some workflows need this set to `false`.
 
 <br/>
 
@@ -121,31 +150,9 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 
 <br/>
 
-> ⚙️ **`runscripts`**
-> 
-> Run every enabled LocalScript in your project on new threads. Defaults to `true`.
-
-<br/>
-
 > ⚙️ **`verbose`**
 > 
 > Enable verbose logging. Defaults to `false`.
-
-<br/>
-
-> ⚙️ **`nocirculardeps`**
-> 
-> Enable circular dependency prevention. Defaults to `true`.
-> 
-> In rare cases, some workflows need this set to `false`.
-
-<br/>
-
-> ⚙️ **`nocache`**
-> 
-> For `rbxassetid` paths, prevent using cached data.
-> 
-> This option manually requests from the web API to grab asset data.
 
 <br/>
 

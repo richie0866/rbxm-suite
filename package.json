@@ -4,7 +4,7 @@
 	"description": "Launch Roblox model files in an exploit",
 	"main": "src/rbxm-suite.lua",
 	"scripts": {
-		"min": "node ci/min.js"
+		"min": "node scripts/min.js"
 	},
 	"keywords": [],
 	"author": "0866",

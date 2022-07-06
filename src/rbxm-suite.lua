@@ -1,455 +1,430 @@
----**rbxm-suite** is a tool designed for exploiting with a Rojo-based workflow.
----Run or require from model files locally, or download them from GitHub.
-local rbxmSuite = {}
+--[[
+-- RBXM Suite is a tool designed to help run a Roblox model in an executor's environment.
+--
+-- Author: 0866
+-- License: MIT
+-- GitHub: https://github.com/richie0866/rbxm-suite/
+--]]
 
 ---@class Options
----@field debug          boolean Enable debug mode. Defaults to false.
----@field runscripts     boolean Run all enabled LocalScripts. Defaults to true.
+---@field runscripts     boolean Run LocalScripts on launch. Defaults to true.
+---@field deferred       boolean Whether to defer or spawn scripts on launch. Defaults to true.
+---@field nocache        boolean Disable caching Roblox library models. Defaults to false.
+---@field nocirculardeps boolean Prevent circular dependency crashes. Defaults to true.
+---@field debug          boolean Enable detailed error traceback. Defaults to false.
 ---@field verbose        boolean Enable verbose mode. Defaults to false.
----@field nocirculardeps boolean Enable circular dependency prevention. Defaults to true.
 
----The name of the script displayed in logs and error traceback.
 local PROGRAM_NAME = "rbxm-suite"
----The name of the cache folder used to store GitHub assets.
-local CACHE_FOLDER_NAME = "_rbxm-suite-v2"
----The key used to store the execution context globally.
-local CONTEXT_KEY = "__rbxm_suite_context"
+local PROGRAM_STORAGE = "_rbxm-suite-v2"
+local PROGRAM_STORAGE_TEMP = PROGRAM_STORAGE .. "/temp.rbxm"
 
----@type fun(path: string): string
-local fileAsContent = getsynasset or getcustomasset or error("File -> Content API not found")
+local HttpService = game:GetService("HttpService")
 
----@class Context
----@field options      Options | nil
----@field currentId    number
----@field idToInstance table<number, Instance>
----@field instanceToId table<Instance, number>
----@field moduleToData table<string, table>
----@field modules      table<number, function>
-local context = getgenv()[CONTEXT_KEY]
+local pathToUrl = getcustomasset or getsynasset or error("Failed to load model! (No custom asset loader found)")
 
-if not getgenv()[CONTEXT_KEY] then
-	context = {
-		options = nil,
-		currentId = 0,
-		idToInstance = {},
-		instanceToId = {},
-		moduleToData = {},
-		modules = {},
-	}
-	getgenv()[CONTEXT_KEY] = context
+local function useGlobal(key, initialValue)
+	local value = getgenv(key)["__rbxm_suite_" .. key]
+
+	if value == nil then
+		value = initialValue
+		getgenv(key)["__rbxm_suite_" .. key] = value
+	end
+
+	return value
 end
 
----Logs a message to the console in verbose mode.
----@vararg string
-local function log(...)
-	if context.options.verbose then
-		print(...)
+local function useOption(option, defaultValue)
+	if option == nil then
+		return defaultValue
+	else
+		return option
 	end
 end
 
----Library for downloading and version checking GitHub Releases.
-local github = {}
-do
-	local HttpService = game:GetService("HttpService")
+local function httpGet(url)
+	local response, code = game:HttpGetAsync(url)
 
-	---Creates a new release cache.
-	function github.init()
-		makefolder(CACHE_FOLDER_NAME)
-		makefolder(CACHE_FOLDER_NAME .. "\\models")
-		writefile(CACHE_FOLDER_NAME .. "\\latest.json", "{}")
+	assert(response, "Error " .. code .. ": Failed to GET from " .. url)
+
+	return response
+end
+
+local function log(message, isVerbose)
+	if isVerbose then
+		print(message)
+	end
+end
+
+-- GitHub integration
+
+local github do
+	github = {}
+
+	local function init()
+		if not isfolder(PROGRAM_STORAGE) then
+			makefolder(PROGRAM_STORAGE)
+			makefolder(PROGRAM_STORAGE .. "/models")
+			writefile(PROGRAM_STORAGE .. "/latest.json", "{}")
+		end
 	end
 
-	---Deletes and recreates the release cache.
-	function github.repair()
-		delfolder(CACHE_FOLDER_NAME)
-		github.init()
+	local function updateLatestJson(mutate)
+		local data = readfile(PROGRAM_STORAGE .. "/latest.json")
+		local versions = HttpService:JSONDecode(data)
+
+		mutate(versions)
+
+		writefile(PROGRAM_STORAGE .. "/latest.json", HttpService:JSONEncode(versions))
 	end
 
-	---Updates the latest.json file with the given updater function.
-	---@param updater function
-	function github.updateVersions(updater)
-		local latest = readfile(CACHE_FOLDER_NAME .. "\\latest.json")
-		local data = HttpService:JSONDecode(latest)
-		updater(data)
-		writefile(CACHE_FOLDER_NAME .. "\\latest.json", HttpService:JSONEncode(data))
+	local function getLocalTag(id)
+		local data = readfile(PROGRAM_STORAGE .. "/latest.json")
+		local versions = HttpService:JSONDecode(data)
+
+		return versions[id]
 	end
 
-	---Returns the installed version of the given id.
-	---@param id string
-	---@return string? version
-	function github.currentVersion(id)
-		local latest = readfile(CACHE_FOLDER_NAME .. "\\latest.json")
-		return HttpService:JSONDecode(latest)[id]
-	end
-
-	---Returns an id for the given user, repo, and tag.
-	---@param user string
-	---@param repo string
-	---@param tag string
-	---@param asset string
-	---@return string id
-	function github.id(user, repo, tag, asset)
-		return user .. "-" .. repo .. "-" .. tag .. "-" .. asset
-	end
-
-	---Returns the path to the given id.
-	---@param id string
-	---@return string path
-	function github.path(id)
-		return CACHE_FOLDER_NAME .. "\\models\\" .. id
-	end
-
-	---Returns a URL to the asset data.
-	---@param user string
-	---@param repo string
-	---@param tag string
-	---@param asset string
-	---@return string url
-	function github.assetUrl(user, repo, tag, asset)
-		return "https://github.com/" .. user .. "/" .. repo .. "/releases/download/" .. tag .. "/" .. asset
-	end
-
-	---Returns a URL to the latest version of the asset data.
-	---@param user string
-	---@param repo string
-	---@param asset string
-	---@return string url
-	function github.latestAssetUrl(user, repo, asset)
-		return "https://github.com/" .. user .. "/" .. repo .. "/releases/latest/download/" .. asset
-	end
-
-	---Returns the latest tag of the repository.
-	---@param user string
-	---@param repo string
-	---@return string tagName
-	function github.latestTag(user, repo)
-		local url = "https://api.github.com/repos/" .. user .. "/" .. repo .. "/releases/latest"
-		local response, code = game:HttpGetAsync(url)
-
-		assert(response, "Version check failed (" .. url .. "): " .. tostring(code))
+	local function fetchLatestTag(user, repo)
+		local response = httpGet("https://api.github.com/repos/" .. user .. "/" .. repo .. "/releases/latest")
 
 		return HttpService:JSONDecode(response).tag_name
 	end
 
-	---Updates the cache with the latest version of the GitHub asset.
-	---@param user string
-	---@param repo string
-	---@param asset string
-	---@return string path
-	function github.downloadLatest(user, repo, asset)
-		local latestTag = github.latestTag(user, repo)
-		local id = github.id(user, repo, "latest", asset)
-		local path = github.path(id)
+	local function downloadLatest(user, repo, asset, id, path)
+		local latestTag = fetchLatestTag(user, repo)
 
-		if isfile(path) and github.currentVersion(id) == latestTag then
+		if isfile(path) and getLocalTag(id) == latestTag then
 			return path
 		end
-	
-		local url = github.latestAssetUrl(user, repo, asset)
-		local response, code = game:HttpGetAsync(url)
-		assert(response, "Download failed (" .. url .. "): " .. tostring(code))
+
+		local response = httpGet("https://github.com/" .. user .. "/" .. repo .. "/releases/latest/download/" .. asset)
 
 		writefile(path, response)
 
-		github.updateVersions(function(data)
-			data[id] = latestTag
+		updateLatestJson(function(versions)
+			versions[id] = latestTag
 		end)
-	
+	end
+
+	function github.download(user, repo, tag, asset)
+		local id = string.gsub(table.concat({user, repo, tag, asset}, "-"), "[^a-zA-Z0-9_%-]", "_")
+		local path = PROGRAM_STORAGE .. "/models/" .. id .. ".rbxm"
+
+		if tag == "latest" then
+			if isfile(path) then
+				-- Perform a deferred update. This function does not need to yield if a
+				-- latest version is already present.
+				task.defer(downloadLatest, user, repo, asset, id, path)
+			else
+				downloadLatest(user, repo, asset, id, path)
+			end
+
+			return path
+		end
+
+		if isfile(path) then
+			return path
+		end
+
+		local response = httpGet("https://github.com/" .. user .. "/" .. repo .. "/releases/download/" .. tag .. "/" .. asset)
+
+		writefile(path, response)
+
 		return path
 	end
 
-	---Downloads the GitHub asset.
-	---@param user string
-	---@param repo string
-	---@param tag string
-	---@param asset string
-	---@return string path
-	function github.download(user, repo, tag, asset)
-		local id = github.id(user, repo, tag, asset)
-		local path = github.path(id)
-
-		if isfile(path) then
-			if tag == "latest" then
-				task.defer(github.downloadLatest, user, repo, asset) -- Background update
-			end
-			return path
-		elseif tag == "latest" then
-			return github.downloadLatest(user, repo, asset)
-		else
-			local url = github.assetUrl(user, repo, tag, asset)
-			local response, code = game:HttpGetAsync(url)
-
-			assert(response, "Download failed (" .. url .. "): " .. tostring(code))
-			writefile(path, response)
-
-			return path
-		end
+	function github.clearCache()
+		delfolder(PROGRAM_STORAGE)
+		init()
 	end
+
+	init()
 end
 
----Stores currently loading modules.
----@type table<LocalScript | ModuleScript, ModuleScript>
+-- Module resolution
+
+local modules = useGlobal("modules", {})
 local currentlyLoading = {}
 
----Checks if requiring this module will result in a circular dependency.
----Returns a cleanup function that should be called once the module is loaded.
----https://github.com/roblox-ts/roblox-ts/blob/master/lib/RuntimeLib.lua#L74
----@param module LocalScript | ModuleScript
----@param caller? LocalScript | ModuleScript
----@return function | nil cleanup
-local function validateRequire(module, caller)
-	currentlyLoading[caller] = module
+local idToScript = useGlobal("idToScript", {})
+local scriptToId = useGlobal("scriptToId", {})
+local globalMap = useGlobal("globalMap", {})
 
-	local currentModule = module
-	local depth = 0
+local function loadModule(object, caller, allowRecursion)
+	local module = modules[object]
 
-	-- If the module is loaded, requiring it will not cause a circular dependency.
-	if not context.moduleToData[module] then
-		while currentModule do
+	if module.isLoaded then
+		return module.data
+	end
+
+	if caller and not allowRecursion then
+		currentlyLoading[caller] = object
+
+		local currentObject = object
+		local depth = 0
+
+		-- Keep looping until we reach the top of the dependency chain.
+		-- Throw an error if we encounter a circular dependency.
+		while currentObject do
 			depth = depth + 1
-			currentModule = currentlyLoading[currentModule]
+			currentObject = currentlyLoading[currentObject]
 
-			if currentModule == module then
-				local str = currentModule.Name -- Get the string traceback
+			if currentObject == object then
+				local str = currentObject:GetFullName()
 
 				for _ = 1, depth do
-					currentModule = currentlyLoading[currentModule]
-					str = str .. "  ⇒ " .. currentModule.Name
+					currentObject = currentlyLoading[currentObject]
+					str = str .. "  ⇒ " .. currentObject:GetFullName()
 				end
 
-				error("Failed to load '" .. module.Name .. "'; Detected a circular dependency chain: " .. str, 2)
+				error("Failed to load '" .. object:GetFullName() .. "'! Detected a circular dependency chain: " .. str, 2)
 			end
 		end
 	end
 
-	return function ()
-		if currentlyLoading[caller] == module then -- Thread-safe cleanup!
-			currentlyLoading[caller] = nil
-		end
-	end
-end
+	local data = module.fn()
 
----Loads the given module if it has not been loaded. Throws an error if a
----circular dependency is detected.
----@param module LocalScript | ModuleScript
----@param this? LocalScript | ModuleScript
----@return any
-local function loadModule(module, this)
-	local cleanup = this and validateRequire(module, this)
-
-	if context.moduleToData[module] then
-		if cleanup then
-			cleanup()
-		end
-		return context.moduleToData[module].data
-	else
-		local data = context.modules[context.instanceToId[module]]()
-		context.moduleToData[module] = { data = data }
-		if cleanup then
-			cleanup()
-		end
-		return data
-	end
-end
-
----Loads the given module.
----@param module ModuleScript
----@param this? LocalScript | ModuleScript
----@return any
-local function requireModuleInternal(module, this)
-	if context.instanceToId[module] and module:IsA("ModuleScript") then
-		return loadModule(module, this)
-	else
-		return require(module)
-	end
-end
-
----Returns a custom global environment.
----@param id number
----@param noCircularDeps boolean
----@return table<string, any> environment
-local function createModuleEnvironment(id, noCircularDeps)
-	return setmetatable({
-		script = context.idToInstance[id],
-		require = function (module)
-			if noCircularDeps then
-				return requireModuleInternal(module, context.idToInstance[id])
-			else
-				return requireModuleInternal(module)
-			end
-		end,
-	}, {
-		__index = getfenv(0),
-		__metatable = "This metatable is locked",
-	})
-end
-
----Writes code that registers the script.
----@param object LocalScript | ModuleScript
----@param path string
----@param out string[]
-local function writeModule(object, path, out)
-	context.currentId = context.currentId + 1
-	context.idToInstance[context.currentId] = object
-	context.instanceToId[object] = context.currentId
-
-	local id = context.currentId
-	local noCircularDeps = tostring(context.options.nocirculardeps)
-	local source = string.format("%q", path)
-
-	if context.options.debug then
-		local code = table.concat({
-			"context.modules["..id.."] = function()",
-			"local fn = assert(loadstring(context.idToInstance["..id.."].Source, '@'.."..source.."))",
-			"setfenv(fn, createModuleEnvironment("..id..", "..noCircularDeps.."))",
-			"return fn()",
-			"end\n\n",
-		}, "\n")
-		table.insert(out, code)
-	else
-		local code = table.concat({
-			"context.modules["..id.."] = function()",
-			object.Source,
-			"end",
-			"setfenv(context.modules["..id.."], createModuleEnvironment("..id..", "..noCircularDeps.."))\n\n",
-		}, "\n")
-		table.insert(out, code)
-	end
-end
-
----Appends the code of every module in the given object tree to `out`.
----Returns the id of the first module
----@param parent Instance
----@param out string[]
----@return number initialId
-local function writeAllModules(parent, out)
-	local initialId = context.currentId + 1
-	if parent:IsA("LocalScript") or parent:IsA("ModuleScript") then
-		writeModule(parent, PROGRAM_NAME .. "." .. parent:GetFullName(), out)
-	end
-	for _, object in ipairs(parent:GetDescendants()) do
-		if object:IsA("LocalScript") or object:IsA("ModuleScript") then
-			writeModule(object, PROGRAM_NAME .. "." .. object:GetFullName(), out)
-		end
-	end
-	return initialId
-end
-
----Runs the code that loads modules into `context.modules`.
----@param out string[]
-local function initModules(out)
-	local environment = setmetatable({
-		context = context,
-		createModuleEnvironment = createModuleEnvironment
-	}, {
-		__index = getfenv(0)
-	})
-	local init = assert(loadstring(table.concat(out, ""), "@" .. PROGRAM_NAME))
-	setfenv(init, environment)()
-end
-
----Downloads an asset from a GitHub Release. Yields and returns the file path.
----@param repo string user/repo@tag or @latest
----@param asset string File name of the .rbxm(x) asset to download
----@return string path
-function rbxmSuite.download(repository, asset)
-	local user, repo, tag = string.match(repository, "([^/]+)/([^@]+)@?(.*)")
-	assert(user and repo, "Invalid repository: " .. repository)
-	return github.download(user, repo, tag or "latest", asset)
-end
-
----Clears the GitHub download cache.
-function rbxmSuite.repair()
-	github.repair()
-end
-
----Runs the given script or module and returns the result.
----@param script LocalScript | ModuleScript
----@return any
-function rbxmSuite.require(script)
-	assert(typeof(script) == "Instance", "Script expected")
-	assert(script:IsA("LuaSourceContainer"), "Script expected")
-	assert(context.instanceToId[script], "Script " .. script:GetFullName() .. " is not registered by this session");
-	return loadModule(script)
-end
-
----Inserts the model at `location` into the game. Initializes all scripts & modules.
----Returns the instance created by the model.
----@param location string
----@param options? Options
----@return Instance
-function rbxmSuite.launch(location, options)
-	options = options or {}
-	context.options = options
-	do
-		-- Defaults
-		if options.debug == nil then options.debug = false end
-		if options.runscripts == nil then options.runscripts = true end
-		if options.verbose == nil then options.verbose = false end
-		if options.nocirculardeps == nil then options.nocirculardeps = true end
-		if options.nocache == nil then options.nocache = false end
+	if currentlyLoading[caller] == object then -- Thread-safe cleanup!
+		currentlyLoading[caller] = nil
 	end
 
-	log("Launching file '" .. location .. "'")
-	for k, v in pairs(options) do
-		local tabs = string.rep(" ", 11 - #k)
-		log("  \"" .. k .. "\"", tabs, "=", v)
+	module.data = data
+	module.isLoaded = true
+
+	return data
+end
+
+-- Module source bundler
+
+local function createOutputStream()
+	local output = {}
+
+	local function push(str)
+		table.insert(output, str)
 	end
 
-	local clock = os.clock()
+	local function concat()
+		return table.concat(output)
+	end
 
-	local objects
-	if string.find(location, "^rbxassetid://") then
-		if options.nocache then
-			local assetId = string.match(location, "^rbxassetid://(%d+)$")
-			if assetId then
-				local response = game:GetService("HttpService"):JSONDecode(game:HttpGetAsync("https://assetdelivery.roblox.com/v2/assetId/" .. assetId))
-				local cdnUrl = response.locations[1].location
-				local assetData = game:HttpGetAsync(cdnUrl)
+	return {
+		push = push,
+		concat = concat,
+	}
+end
 
-				-- This will require a temporary file to store the asset into
-				local tempFilePath = CACHE_FOLDER_NAME .. "\\__nocache_asset"
-				writefile(tempFilePath, assetData)
-				objects = game:GetObjects(fileAsContent(tempFilePath))
-				delfile(tempFilePath) -- No longer needed
-			end
+local function registerModule(object, allowRecursion)
+	local id = HttpService:GenerateGUID()
+
+	local function require(target)
+		if typeof(target) == "Instance" and modules[target] then
+			return loadModule(target, object, allowRecursion)
 		else
-			objects = game:GetObjects(location)
+			return require(target)
 		end
+	end
+
+	modules[object] = {
+		data = nil,
+		fn = nil,
+		isLoaded = false,
+	}
+
+	idToScript[id] = object
+	scriptToId[object] = id
+
+	globalMap[id] = {object, require}
+
+	return id
+end
+
+local function pushHeader(stream)
+	stream.push("local modules, globalMap, idToScript = ...")
+end
+
+local function pushModule(object, stream, options)
+	if not object:IsA("LocalScript") and not object:IsA("ModuleScript") then
+		return
+	end
+
+	local id = string.format("%q", registerModule(object, not options.nocirculardeps))
+	local path = string.format("%q", "@" .. PROGRAM_NAME .. "." .. object:GetFullName())
+
+	-- Localize globals to avoid setfenv() optimization issues.
+	object.Source = "local script, require = unpack(globalMap[" .. id .. "]); " .. object.Source
+
+	if options.debug then
+		-- Preserve error traceback and lazy-loading.
+		stream.push(
+			"modules[idToScript[" .. id .. "]].fn = function ()\n" ..
+			"local fn, err = loadstring(idToScript[" .. id .. "].Source, " .. path .. ")\n" ..
+			"return assert(fn, err)()\n" ..
+			"end\n"
+		)
+
+		return
+	end
+
+	stream.push("modules[idToScript[" .. id .. "]].fn = function ()\n" .. object.Source .. "\nend\n")
+end
+
+-- Runtime
+
+local function getObjectsNoCache(url)
+	local assetId = string.match(url, "^rbxassetid://(%d+)$")
+
+	if not assetId then
+		return game:GetObjects(url)
+	end
+
+	local data = HttpService:JSONDecode(httpGet("https://assetdelivery.roblox.com/v2/assetId/" .. assetId))
+
+	-- Create a temporary file to store the asset.
+	writefile(PROGRAM_STORAGE_TEMP, httpGet(data.locations[1].locations))
+
+	local objects = game:GetObjects(pathToUrl(PROGRAM_STORAGE_TEMP))
+
+	delfile(PROGRAM_STORAGE_TEMP)
+
+	return objects
+end
+
+local function getObjects(url, noCache)
+	if string.find(url, "^rbxassetid://") then
+		if noCache then
+			return getObjectsNoCache(url)
+		end
+
+		return game:GetObjects(url)
 	else
-		objects = game:GetObjects(fileAsContent(location))
+		return game:GetObjects(pathToUrl(url))
 	end
-	assert(type(objects) == "table", objects or "Failed to load model at " .. location)
-	assert(typeof(objects[1]) == "Instance", "Model must contain at least one instance")
+end
 
-	-- Register every script in the model
-	local moduleOutput = {}
-	local initialId = writeAllModules(objects[1], moduleOutput)
-	initModules(moduleOutput)
+local function hydrate(stream, model, options)
+	pushModule(model, stream, options)
 
-	log("Compiled", context.currentId - initialId + 1, "modules")
+	for _, object in ipairs(model:GetDescendants()) do
+		pushModule(object, stream, options)
+	end
+end
 
-	-- Run every LocalScript object
+local function initialize(stream)
+	assert(loadstring(stream.concat(), "@" .. PROGRAM_NAME))(modules, globalMap, idToScript)
+end
+
+local function startModelScripts(model, options)
+	local scriptCount = 0
+	local spawn = options.deferred and task.defer or task.spawn
+
+	for _, object in pairs(model:GetDescendants()) do
+		if object:IsA("LocalScript") and not object.Disabled then
+			scriptCount += 1
+
+			local index = scriptCount
+
+			spawn(function()
+				log("ℹ️ " .. index .. " Running " .. object:GetFullName(), options.verbose)
+
+				loadModule(object)
+
+				log("✅ " .. index .. " Done!", options.verbose)
+			end)
+		end
+	end
+end
+
+-- RBXM Suite
+
+---Inserts a model into the game. Loads every module in the model. Returns a
+---list of models returned by `game.GetObjects()`.
+---@param url string
+---@param opt? Options
+---@return Instance[]
+local function launch(url, opt)
+	assert(type(url) == "string", "The first argument 'url' must be a string.")
+	assert(type(opt) == "table" or opt == nil, "The second argument 'options' must be a table or nil.")
+
+	opt = opt or {}
+
+	local options = {
+		runscripts = useOption(opt.runscripts, true),
+		deferred = useOption(opt.deferred, true),
+		nocache = useOption(opt.nocache, false),
+		nocirculardeps = useOption(opt.nocirculardeps, true),
+		debug = useOption(opt.debug, false),
+		verbose = useOption(opt.verbose, false),
+	}
+
+	log("\n\n" .. utf8.char(0x1F680) .. " Launching file '" .. url .. "'\n", options.verbose)
+
+	local startTime = os.clock()
+
+	local objects = getObjects(url, options.nocache)
+	local stream = createOutputStream()
+
+	-- Add the header for localizing globals.
+	pushHeader(stream)
+
+	-- Generate module sources.
+	for _, model in ipairs(objects) do
+		hydrate(stream, model, options)
+	end
+
+	-- Registers every module to the 'modules' table.
+	initialize(stream)
+
+	-- Run every LocalScript in the models.
 	if options.runscripts then
-		log("Scanning objects for LocalScripts")
-
-		for i = initialId, context.currentId do
-			local object = context.idToInstance[i]
-			if object:IsA("LocalScript") and not object.Disabled then
-				task.defer(loadModule, object)
-				log(i - initialId + 1, "/", context.currentId - initialId + 1, ":", object:GetFullName())
-			end
+		for _, model in ipairs(objects) do
+			startModelScripts(model, options)
 		end
 	end
 
-	log("Done in", (os.clock() - clock) * 1000, "milliseconds")
+	log("\n\n" .. utf8.char(0x1F389) .. " Done! Took " .. string.format("%.2f", (os.clock() - startTime) * 1000) .. " milliseconds.\n", options.verbose)
 
-	context.options = nil
-	return table.unpack(objects)
+	return unpack(objects)
 end
 
-if not isfolder(CACHE_FOLDER_NAME) then
-	github.init()
+---Runs the given module or script object and returns the result. The module
+---must be registered with `launch()` before calling this function.
+---@param object LocalScript | ModuleScript
+---@return any
+local function require(object)
+	assert(typeof(object) == "Instance", "The script must be an Instance.")
+	assert(object:IsA("LuaSourceContainer"), "The script must be a Lua module or script.")
+	assert(modules[object], "The script must be registered with rbxmSuite.")
+
+	return loadModule(object)
 end
 
-return rbxmSuite
+---Downloads a model asset from a GitHub Release. Returns a path to the file.
+---If a previous version of the asset is already downloaded, the path will be
+---returned and updated in the background. Otherwise, this function yields.
+---@param repo string `user/repo@tag`, `user/repo@latest`, `user/repo`
+---@param asset string
+---@return string
+local function download(repository, asset)
+	local user, repo, tag = string.match(repository, "([^/]+)/([^@]+)@?(.*)")
+
+	assert(user and repo, "Invalid repository format.")
+	assert(type(asset) == "string", "The asset must be a string.")
+
+	if tag == "" or tag == nil then
+		tag = "latest"
+	end
+
+	return github.download(user, repo, tag, asset)
+end
+
+---Clears the cache of downloaded assets.
+local function clearCache()
+	return github.clearCache()
+end
+
+return {
+	launch = launch,
+	require = require,
+	download = download,
+	clearCache = clearCache,
+}
