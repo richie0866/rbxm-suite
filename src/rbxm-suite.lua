@@ -387,6 +387,7 @@ function rbxmSuite.launch(location, options)
 		if options.runscripts == nil then options.runscripts = true end
 		if options.verbose == nil then options.verbose = false end
 		if options.nocirculardeps == nil then options.nocirculardeps = true end
+		if options.nocache == nil then options.nocache = false end
 	end
 
 	log("Launching file '" .. location .. "'")
@@ -399,7 +400,22 @@ function rbxmSuite.launch(location, options)
 
 	local objects
 	if string.find(location, "^rbxassetid://") then
-		objects = game:GetObjects(location)
+		if options.nocache then
+			local assetId = string.match(location, "^rbxassetid://(%d+)$")
+			if assetId then
+				local response = game:GetService("HttpService"):JSONDecode(game:HttpGetAsync("https://assetdelivery.roblox.com/v2/assetId/" .. assetId))
+				local cdnUrl = response.locations[1].location
+				local assetData = game:HttpGetAsync(cdnUrl)
+
+				-- This will require a temporary file to store the asset into
+				local tempFilePath = CACHE_FOLDER_NAME .. "\\__nocache_asset"
+				writefile(tempFilePath, assetData)
+				objects = game:GetObjects(fileAsContent(tempFilePath))
+				delfile(tempFilePath) -- No longer needed
+			end
+		else
+			objects = game:GetObjects(location)
+		end
 	else
 		objects = game:GetObjects(fileAsContent(location))
 	end
