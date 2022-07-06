@@ -1,3 +1,10 @@
+# v2.2.2
+
+## Bug Fixes
+
+- Fixed a bug in the `nocache` option.
+- Top-level LocalScripts are now executed when `runscripts` is true.
+
 # v2.2.1
 
 ## Development
