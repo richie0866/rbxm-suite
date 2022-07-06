@@ -104,6 +104,7 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 	runscripts = true,
 	verbose = false,
 	nocirculardeps = true,
+	nocache = true,
 })
 ```
 
@@ -137,6 +138,14 @@ local project = rbxmSuite.launch("path/to/Project.rbxm", {
 > Enable circular dependency prevention. Defaults to `true`.
 > 
 > In rare cases, some workflows need this set to `false`.
+
+<br/>
+
+> ⚙️ **`nocache`**
+> 
+> For `rbxassetid` paths, prevent using cached data.
+> 
+> This option manually requests from the web API to grab asset data.
 
 <br/>
 
