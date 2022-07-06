@@ -422,8 +422,6 @@ local function clearCache()
 	return github.clearCache()
 end
 
-launch("Orca.rbxm", { debug = true })
-
 return {
 	launch = launch,
 	require = require,
