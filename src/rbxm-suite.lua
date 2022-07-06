@@ -16,7 +16,7 @@
 
 local PROGRAM_NAME = "rbxm-suite"
 local PROGRAM_STORAGE = "_rbxm-suite-v2"
-local PROGRAM_STORAGE_TEMP = PROGRAM_STORAGE .. "/temp.rbxm"
+local PROGRAM_TEMP = PROGRAM_STORAGE .. "/temp.dat"
 
 local HttpService = game:GetService("HttpService")
 
@@ -250,10 +250,10 @@ local function pushModule(object, stream, options)
 	local id = string.format("%q", registerModule(object, not options.nocirculardeps))
 	local path = string.format("%q", "@" .. PROGRAM_NAME .. "." .. object:GetFullName())
 
-	-- Localize globals to avoid setfenv() optimization issues.
-	object.Source = "local script, require = unpack((globalMap or ...)[" .. id .. "]); " .. object.Source
-
 	if options.debug then
+		-- Localize globals to avoid setfenv() optimization issues.
+		object.Source = "local script, require = unpack((...)[" .. id .. "]); " .. object.Source
+
 		-- Preserve error traceback and lazy-loading.
 		stream.push(
 			"modules[idToScript[" .. id .. "]].fn = function ()\n" ..
@@ -265,12 +265,16 @@ local function pushModule(object, stream, options)
 		return
 	end
 
+	-- Localize globals to avoid setfenv() optimization issues.
+	object.Source = "local script, require = unpack(globalMap[" .. id .. "]); " .. object.Source
+
+	-- Error traceback is not preserved, but the source loads immediately.
 	stream.push("modules[idToScript[" .. id .. "]].fn = function ()\n" .. object.Source .. "\nend\n")
 end
 
 -- Runtime
 
-local function getObjectsNoCache(url)
+local function getObjectsNoCache(url, isVerbose)
 	local assetId = string.match(url, "^rbxassetid://(%d+)$")
 
 	if not assetId then
@@ -278,21 +282,27 @@ local function getObjectsNoCache(url)
 	end
 
 	local data = HttpService:JSONDecode(httpGet("https://assetdelivery.roblox.com/v2/assetId/" .. assetId))
+	local rbxmData = httpGet(data.locations[1].location)
+
+	if rbxmData == "" then
+		log("⚠️ Model data for asset " .. assetId .. " is blank!", isVerbose)
+		return game:GetObjects(url)
+	end
 
 	-- Create a temporary file to store the asset.
-	writefile(PROGRAM_STORAGE_TEMP, httpGet(data.locations[1].locations))
+	writefile(PROGRAM_TEMP, rbxmData)
 
-	local objects = game:GetObjects(pathToUrl(PROGRAM_STORAGE_TEMP))
+	local objects = game:GetObjects(pathToUrl(PROGRAM_TEMP))
 
-	delfile(PROGRAM_STORAGE_TEMP)
+	delfile(PROGRAM_TEMP)
 
 	return objects
 end
 
-local function getObjects(url, noCache)
+local function getObjects(url, options)
 	if string.find(url, "^rbxassetid://") then
-		if noCache then
-			return getObjectsNoCache(url)
+		if options.nocache then
+			return getObjectsNoCache(url, options.verbose)
 		end
 
 		return game:GetObjects(url)
@@ -313,23 +323,30 @@ local function initialize(stream)
 	assert(loadstring(stream.concat(), "@" .. PROGRAM_NAME))(modules, globalMap, idToScript)
 end
 
-local function startModelScripts(model, options)
-	local scriptCount = 0
+local function startScript(object, index, options)
 	local spawn = options.deferred and task.defer or task.spawn
 
-	for _, object in pairs(model:GetDescendants()) do
+	spawn(function()
+		log("ℹ️ " .. index .. " Running " .. object:GetFullName(), options.verbose)
+
+		loadModule(object)
+
+		log("✅ " .. index .. " Done!", options.verbose)
+	end)
+end
+
+local function startScripts(model, options)
+	local scripts = 0
+
+	if model:IsA("LocalScript") and not model.Disabled then
+		scripts = scripts + 1
+		startScript(model, scripts, options)
+	end
+
+	for _, object in ipairs(model:GetDescendants()) do
 		if object:IsA("LocalScript") and not object.Disabled then
-			scriptCount = scriptCount + 1
-
-			local index = scriptCount
-
-			spawn(function()
-				log("ℹ️ " .. index .. " Running " .. object:GetFullName(), options.verbose)
-
-				loadModule(object)
-
-				log("✅ " .. index .. " Done!", options.verbose)
-			end)
+			scripts = scripts + 1
+			startScript(object, scripts, options)
 		end
 	end
 end
@@ -348,19 +365,19 @@ local function launch(url, opt)
 	opt = opt or {}
 
 	local options = {
-		runscripts = useOption(opt.runscripts, true),
-		deferred = useOption(opt.deferred, true),
-		nocache = useOption(opt.nocache, false),
+		runscripts     = useOption(opt.runscripts, true),
+		deferred       = useOption(opt.deferred, true),
+		nocache        = useOption(opt.nocache, false),
 		nocirculardeps = useOption(opt.nocirculardeps, true),
-		debug = useOption(opt.debug, false),
-		verbose = useOption(opt.verbose, false),
+		debug          = useOption(opt.debug, false),
+		verbose        = useOption(opt.verbose, false),
 	}
 
 	log("\n\n" .. utf8.char(0x1F680) .. " Launching file '" .. url .. "'\n", options.verbose)
 
-	local startTime = os.clock()
+	local clock = os.clock()
 
-	local objects = getObjects(url, options.nocache)
+	local objects = getObjects(url, options)
 	local stream = createOutputStream()
 
 	-- Add the header for localizing globals.
@@ -377,11 +394,11 @@ local function launch(url, opt)
 	-- Run every LocalScript in the models.
 	if options.runscripts then
 		for _, model in ipairs(objects) do
-			startModelScripts(model, options)
+			startScripts(model, options)
 		end
 	end
 
-	log("\n\n" .. utf8.char(0x1F389) .. " Done! Took " .. string.format("%.2f", (os.clock() - startTime) * 1000) .. " milliseconds.\n", options.verbose)
+	log("\n\n" .. utf8.char(0x1F389) .. " Done! Took " .. string.format("%.2f", (os.clock() - clock) * 1000) .. " milliseconds.\n", options.verbose)
 
 	return unpack(objects)
 end
@@ -421,6 +438,15 @@ end
 local function clearCache()
 	return github.clearCache()
 end
+
+launch("rbxassetid://10138320931", {
+	runscripts = true,
+	deferred = true,
+	nocache = true,
+	nocirculardeps = true,
+	debug = true,
+	verbose = true,
+})
 
 return {
 	launch = launch,
