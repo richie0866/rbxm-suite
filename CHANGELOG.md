@@ -1,3 +1,9 @@
+# v2.2.1
+
+## Development
+
+- Fix globals for debug mode 14fcbdf8ee5bb390526436163a01b58f39432785 @richie0866
+
 # v2.2.0
 
 ## New Features
